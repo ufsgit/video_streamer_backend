@@ -32,11 +32,13 @@ app.use('/api/admin/dashboard/activity-logs', activityLogsRoutes);
 // Manage Users Routes
 const createUserRoutes = require('./modules/admin/manageUsers/createUser/createUser.routes');
 const listUsersRoutes = require('./modules/admin/manageUsers/listUsers/listUsers.routes');
+const getUserByIdRoutes = require('./modules/admin/manageUsers/getUserById/getUserById.routes');
 const editUserRoutes = require('./modules/admin/manageUsers/editUser/editUser.routes');
 const deleteUserRoutes = require('./modules/admin/manageUsers/deleteUser/deleteUser.routes');
 
 app.use('/api/admin/users/create', createUserRoutes);
 app.use('/api/admin/users/list', listUsersRoutes);
+app.use('/api/admin/users/get', getUserByIdRoutes);
 app.use('/api/admin/users/edit', editUserRoutes);
 app.use('/api/admin/users/delete', deleteUserRoutes);
 

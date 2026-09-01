@@ -188,6 +188,18 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `user_getbyid`(
+    IN p_user_id INT,
+    IN p_doctor_id INT
+)
+BEGIN
+    SELECT *
+    FROM users 
+    WHERE id = p_user_id AND doctor_id = p_doctor_id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `user_lists`(
     IN p_doctor_id INT,
     IN p_limit INT,
