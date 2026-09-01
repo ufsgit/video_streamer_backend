@@ -46,7 +46,7 @@ CREATE TABLE `admins` (
 
 LOCK TABLES `admins` WRITE;
 /*!40000 ALTER TABLE `admins` DISABLE KEYS */;
-INSERT INTO `admins` VALUES (1,'admin','123','Dr. Admin Smith','https://example.com/photos/admin.jpg','admin@hospital.com','+1234567890','1985-05-15','2026-09-01 04:33:32','2026-09-01 04:33:32');
+INSERT INTO `admins` VALUES (1,'admin','$2b$10$AAw88YyaTZz15M3QSe2Wb.HcFt7pT5U2DVOa.EgEa6LxREW1e4RhC','Dr. Admin Smith','https://example.com/photos/admin.jpg','admin@hospital.com','+1234567890','1985-05-15','2026-09-01 04:33:32','2026-09-01 05:44:50');
 /*!40000 ALTER TABLE `admins` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -166,10 +166,12 @@ CREATE TABLE `users` (
   `photo_url` varchar(255) DEFAULT NULL,
   `dob` date DEFAULT NULL,
   `sex` enum('Male','Female','Other') NOT NULL,
+  `age` int DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
   `phone_number` varchar(20) DEFAULT NULL,
   `note` text,
   `doctor_id` int DEFAULT NULL,
+  `doctor_name` varchar(100) DEFAULT NULL,
   `current_streak` int DEFAULT '0',
   `last_active_date` date DEFAULT NULL,
   `total_time_on_platform_seconds` int DEFAULT '0',
@@ -182,7 +184,7 @@ CREATE TABLE `users` (
   KEY `idx_user_doctor` (`doctor_id`),
   KEY `idx_user_status` (`status`),
   CONSTRAINT `users_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -191,6 +193,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
+INSERT INTO `users` VALUES (1,'testuser','$2b$10$AAw88YyaTZz15M3QSe2Wb.HcFt7pT5U2DVOa.EgEa6LxREW1e4RhC','Test User Name',NULL,NULL,'Male',24,NULL,'55-888',NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 06:00:56','Active','2026-09-01 11:01:18'),(2,'testpatient1','$2b$10$w4Zh4S0aU5Sl8dr8DLDRUOUf3HlR2jdrvWyWGTnet2w1nIogcnifi','John Doe','profiles/1788253770425-48683213.jpeg','1990-05-15','Male',36,'john@example.com','555-1234','Post-surgery recovery',1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 09:09:30','Active','2026-09-01 09:54:29');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -235,4 +238,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-01 10:59:12
+-- Dump completed on 2026-09-01 16:33:00

@@ -28,7 +28,7 @@ const loginAdmin = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
-        const token = generateToken(admin.id, 'admin');
+        const token = generateToken(admin.id, 'admin', admin.name);
 
         res.status(200).json({
             success: true,
@@ -77,7 +77,7 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
-        const token = generateToken(user.id, 'user');
+        const token = generateToken(user.id, 'user', user.name);
 
         res.status(200).json({
             success: true,

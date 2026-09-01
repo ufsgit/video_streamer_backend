@@ -5,3 +5,7 @@ DB_PASSWORD=root123
 DB_NAME=video_stream_db_v1
 
 JWT_SECRET=health_video_stream_2026
+
+# Storage Configurations
+STORAGE_PROVIDER=local
+BASE_UPLOAD_URL=http://localhost:3000
