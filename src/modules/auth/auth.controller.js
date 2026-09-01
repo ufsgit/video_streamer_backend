@@ -22,7 +22,7 @@ const loginAdmin = async (req, res) => {
         // In a real app, use comparePassword. 
         // For testing since you inserted '123' as plain text, we will do a direct check if comparePassword fails
         // but we should always rely on bcrypt in production.
-        const isMatch = await comparePassword(password, admin.password_hash) || password === admin.password_hash;
+        const isMatch = await comparePassword(password, admin.password_hash);
 
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -71,7 +71,7 @@ const loginUser = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Account is inactive. Contact admin.' });
         }
 
-        const isMatch = await comparePassword(password, user.password_hash) || password === user.password_hash;
+        const isMatch = await comparePassword(password, user.password_hash);
 
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
