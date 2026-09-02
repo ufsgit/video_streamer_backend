@@ -1,7 +1,34 @@
 const express = require('express');
+const cors = require('cors');
 const path = require('path');
 
 const app = express();
+
+// 1. Pull the allowed production URL from the .env file
+const productionUrl = process.env.PRODUCTION_URL; 
+
+// 2. Check the environment variable from the .env file
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+// 3. Configure CORS dynamically
+const corsOptions = {
+  origin: function (origin, callback) {
+    // If in development mode, allow everything
+    if (isDevelopment) {
+      return callback(null, true);
+    }
+
+    // If in production, strictly enforce the production URL from .env
+    if (origin === productionUrl || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+};
+
+// 4. Apply the CORS middleware
+app.use(cors(corsOptions));
 
 // Middleware to parse JSON bodies
 app.use(express.json());
