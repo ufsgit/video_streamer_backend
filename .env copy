@@ -8,6 +8,8 @@ JWT_SECRET=health_video_stream_2026
 
 # Storage Configurations
 STORAGE_PROVIDER=local
+# STORAGE_PROVIDER=s3
+
 BASE_UPLOAD_URL=http://localhost:3000
 
 # Environment setup for CORS

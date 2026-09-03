@@ -69,4 +69,17 @@ app.use('/api/admin/users/get', getUserByIdRoutes);
 app.use('/api/admin/users/edit', editUserRoutes);
 app.use('/api/admin/users/delete', deleteUserRoutes);
 
+// Manage Videos Routes
+const createVideoRoutes = require('./modules/admin/manageVideos/createVideo/createVideo.routes');
+const listVideosRoutes = require('./modules/admin/manageVideos/listVideos/listVideos.routes');
+const getVideoByIdRoutes = require('./modules/admin/manageVideos/getVideoById/getVideoById.routes');
+const editVideoRoutes = require('./modules/admin/manageVideos/editVideo/editVideo.routes');
+const deleteVideoRoutes = require('./modules/admin/manageVideos/deleteVideo/deleteVideo.routes');
+
+app.use('/api/admin/videos/create', createVideoRoutes);
+app.use('/api/admin/videos/list', listVideosRoutes);
+app.use('/api/admin/videos/get', getVideoByIdRoutes);
+app.use('/api/admin/videos/edit', editVideoRoutes);
+app.use('/api/admin/videos/delete', deleteVideoRoutes);
+
 module.exports = app;
