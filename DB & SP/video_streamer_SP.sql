@@ -223,3 +223,23 @@ BEGIN
     LIMIT p_limit OFFSET p_offset;
 END$$
 DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `video_create`(
+    IN p_title VARCHAR(255),
+    IN p_description TEXT,
+    IN p_video_url VARCHAR(255),
+    IN p_video_source ENUM('local', 'youtube', 'vimeo', 'external'),
+    IN p_thumbnail_url VARCHAR(255),
+    IN p_category ENUM('pre-op', 'post-op'),
+    IN p_admin_id INT
+)
+BEGIN
+    INSERT INTO videos (
+        title, description, video_url, video_source, thumbnail_url, category, uploaded_by_admin_id, created_at
+    ) VALUES (
+        p_title, p_description, p_video_url, p_video_source, p_thumbnail_url, p_category, p_admin_id, CURRENT_TIMESTAMP
+    );
+    SELECT LAST_INSERT_ID() AS new_video_id;
+END$$
+DELIMITER ;

@@ -184,7 +184,7 @@ CREATE TABLE `users` (
   KEY `idx_user_doctor` (`doctor_id`),
   KEY `idx_user_status` (`status`),
   CONSTRAINT `users_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -193,7 +193,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'testuser','$2b$10$AAw88YyaTZz15M3QSe2Wb.HcFt7pT5U2DVOa.EgEa6LxREW1e4RhC','Test User Name',NULL,NULL,'Male',24,NULL,'55-888',NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 06:00:56','Active','2026-09-01 11:01:18'),(2,'testpatient1','$2b$10$w4Zh4S0aU5Sl8dr8DLDRUOUf3HlR2jdrvWyWGTnet2w1nIogcnifi','John Doe','profiles/1788253770425-48683213.jpeg','1990-05-15','Male',36,'john@example.com','555-1234','Post-surgery recovery',1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 09:09:30','Active','2026-09-01 09:54:29');
+INSERT INTO `users` VALUES (1,'testuser','$2b$10$AAw88YyaTZz15M3QSe2Wb.HcFt7pT5U2DVOa.EgEa6LxREW1e4RhC','Test User Name',NULL,NULL,'Male',24,NULL,'55-888',NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 06:00:56','Active','2026-09-01 11:01:18'),(2,'testpatient1','$2b$10$w4Zh4S0aU5Sl8dr8DLDRUOUf3HlR2jdrvWyWGTnet2w1nIogcnifi','John Doe','profiles/1788253770425-48683213.jpeg','1990-05-15','Male',36,'john@example.com','555-1234','Post-surgery recovery',1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 09:09:30','Active','2026-09-01 09:54:29'),(6,'jane','$2b$10$86ixN4J5bAi.K2RoyY6Ge.yCgn5w7Le/qskla5a1l9GwHs9xvld7q','jane',NULL,'2001-09-08','Male',24,'jane@gmail.com','4678657897',NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-02 10:05:48','Active','2026-09-02 10:05:48');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -209,6 +209,7 @@ CREATE TABLE `videos` (
   `title` varchar(255) NOT NULL,
   `description` text,
   `video_url` varchar(255) NOT NULL,
+  `video_source` enum('local','youtube','vimeo','external') NOT NULL,
   `thumbnail_url` varchar(255) DEFAULT NULL,
   `category` enum('pre-op','post-op') NOT NULL,
   `uploaded_by_admin_id` int DEFAULT NULL,
@@ -218,7 +219,7 @@ CREATE TABLE `videos` (
   KEY `uploaded_by_admin_id` (`uploaded_by_admin_id`),
   KEY `idx_video_category` (`category`),
   CONSTRAINT `videos_ibfk_1` FOREIGN KEY (`uploaded_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -227,6 +228,7 @@ CREATE TABLE `videos` (
 
 LOCK TABLES `videos` WRITE;
 /*!40000 ALTER TABLE `videos` DISABLE KEYS */;
+INSERT INTO `videos` VALUES (1,'My First Surgery Video','This is a test description.','https://www.youtube.com/watch?v=dQw4w9WgXcQ','youtube',NULL,'pre-op',1,'2026-09-02 09:53:48','2026-09-02 09:53:48'),(2,'My Local Server Video','Testing local MP4 upload.','videos/1788343099283-145119193.mp4','local','thumbnails/1788343099793-33729851.jpeg','post-op',1,'2026-09-02 09:58:19','2026-09-02 09:58:19'),(3,'My Local Server Video','Testing local2','videos/1788343491142-254262379.mp4','local','thumbnails/1788343491547-285988093.jpg','pre-op',1,'2026-09-02 10:04:51','2026-09-02 10:04:51'),(4,'My Local Server Video3','Testing local3','videos/1788343642605-72122656.mp4','local','thumbnails/1788343642928-311377829.jpg','pre-op',1,'2026-09-02 10:07:22','2026-09-02 10:07:22');
 /*!40000 ALTER TABLE `videos` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -239,4 +241,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-01 17:52:17
+-- Dump completed on 2026-09-03 11:16:34
