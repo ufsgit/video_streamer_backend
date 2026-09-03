@@ -33,6 +33,14 @@ app.use(cors(corsOptions));
 // Middleware to parse JSON bodies
 app.use(express.json());
 
+// Global Request Logger Middleware
+// app.use((req, res, next) => {
+//     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+//     if (Object.keys(req.body || {}).length > 0) console.log("Body:", req.body);
+//     if (req.files) console.log("Files:", req.files);
+//     next();
+// });
+
 // Serve the uploads folder as static files (so Flutter can access videos/images)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 

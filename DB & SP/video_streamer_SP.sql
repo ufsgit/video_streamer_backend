@@ -243,3 +243,39 @@ BEGIN
     SELECT LAST_INSERT_ID() AS new_video_id;
 END$$
 DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `video_delete`(IN p_id INT)
+BEGIN DELETE FROM videos WHERE id = p_id; END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `video_edit`(IN p_id INT, IN p_title VARCHAR(255), IN p_description TEXT, IN p_video_url VARCHAR(255), IN p_video_source VARCHAR(50), IN p_thumbnail_url VARCHAR(255), IN p_category VARCHAR(50))
+BEGIN UPDATE videos SET title = COALESCE(p_title, title), description = COALESCE(p_description, description), video_url = COALESCE(p_video_url, video_url), video_source = COALESCE(p_video_source, video_source), thumbnail_url = COALESCE(p_thumbnail_url, thumbnail_url), category = COALESCE(p_category, category) WHERE id = p_id; END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `video_getbyid`(IN p_id INT)
+BEGIN
+    SELECT * 
+    FROM videos 
+    WHERE id = p_id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `video_lists`(
+IN p_adminId INT,
+ IN p_limit INT,
+ IN p_offset INT,
+ IN p_category VARCHAR(50),
+ IN p_source VARCHAR(50),
+ IN p_search VARCHAR(255))
+BEGIN SELECT * FROM videos 
+WHERE (uploaded_by_admin_id = p_adminId OR p_adminId IS NULL) 
+AND (p_category = 'all' OR category = p_category) 
+AND (p_source = 'all' OR video_source = p_source) 
+AND (p_search IS NULL OR title LIKE CONCAT(p_search, '%')) 
+ORDER BY created_at DESC LIMIT p_limit OFFSET p_offset; 
+END$$
+DELIMITER ;

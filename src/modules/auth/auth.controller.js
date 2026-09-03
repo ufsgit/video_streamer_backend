@@ -12,7 +12,7 @@ const loginAdmin = async (req, res) => {
 
     try {
         const users = await authService.getAdminByUsername(username);
-        
+
         if (users.length === 0) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
@@ -60,7 +60,7 @@ const loginUser = async (req, res) => {
 
     try {
         const users = await authService.getUserByUsername(username);
-        
+
         if (users.length === 0) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
