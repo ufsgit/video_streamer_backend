@@ -41,7 +41,7 @@ const createUser = async (req, res) => {
             message: 'User created successfully',
             data: { 
                 id: newUserId,
-                photo_url,
+                photo_url: photoUrl,
             }
         });
         
