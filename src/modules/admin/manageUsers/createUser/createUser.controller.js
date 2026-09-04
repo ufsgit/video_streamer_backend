@@ -36,18 +36,12 @@ const createUser = async (req, res) => {
             age: age || null
         });
 
-        // Generate the full URL to send back to Flutter right now
-        let fullPhotoUrl = null;
-        if (photoUrl) {
-            fullPhotoUrl = `${process.env.BASE_UPLOAD_URL}/${photoUrl}`;
-        }
-
         res.status(201).json({
             success: true,
             message: 'User created successfully',
             data: { 
                 id: newUserId,
-                photo_url: fullPhotoUrl
+                photo_url,
             }
         });
         

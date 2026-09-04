@@ -14,13 +14,7 @@ const listVideos = async (req, res) => {
 
         const videos = await listVideosService.listVideos(adminId, limit, offset, category, source, search);
 
-        const formattedVideos = videos.map(v => {
-            if (v.thumbnail_url) v.thumbnail_url = `${process.env.BASE_UPLOAD_URL}/${v.thumbnail_url}`;
-            if (v.video_source === 'local' && v.video_url) v.video_url = `${process.env.BASE_UPLOAD_URL}/${v.video_url}`;
-            return v;
-        });
-
-        res.status(200).json({ success: true, data: formattedVideos });
+        res.status(200).json({ success: true, data: videos });
     } catch (error) {
         console.error('Error listing videos:', error);
         res.status(500).json({ success: false, message: 'Server Error' });

@@ -11,11 +11,6 @@ const getUserById = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found or you do not have permission to view this user.' });
         }
         
-        // Format photo_url if it exists
-        if (user.photo_url) {
-            user.photo_url = `${process.env.BASE_UPLOAD_URL}/${user.photo_url}`;
-        }
-        
         res.status(200).json({
             success: true,
             data: user

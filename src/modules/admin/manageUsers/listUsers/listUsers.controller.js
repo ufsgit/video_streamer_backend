@@ -18,13 +18,9 @@ const listUsers = async (req, res) => {
         
         // Map over the results to format photo_url if necessary
         const formattedUsers = users.map(user => {
-            let fullPhotoUrl = null;
-            if (user.photo_url) {
-                fullPhotoUrl = `${process.env.BASE_UPLOAD_URL}/${user.photo_url}`;
-            }
             return {
                 ...user,
-                photo_url: fullPhotoUrl
+                photo_url: user.photo_url || null
             };
         });
 
