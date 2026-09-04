@@ -1,8 +1,8 @@
 -- MySQL dump 10.13  Distrib 8.0.45, for Win64 (x86_64)
 --
--- Host: 127.0.0.1    Database: video_streamer
+-- Host: localhost    Database: video_stream_db_v1
 -- ------------------------------------------------------
--- Server version	9.6.0
+-- Server version	8.0.45
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -14,15 +14,6 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
-SET @@SESSION.SQL_LOG_BIN= 0;
-
---
--- GTID state at the beginning of the backup 
---
-
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '209751e0-37b8-11f1-bfed-40c2ba987f8c:1-47009,
-35f1f18e-371f-11f1-80d5-5cb47e3771c9:1-1565';
 
 --
 -- Table structure for table `admins`
@@ -193,7 +184,7 @@ CREATE TABLE `users` (
   KEY `idx_user_doctor` (`doctor_id`),
   KEY `idx_user_status` (`status`),
   CONSTRAINT `users_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -202,7 +193,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'testuser','$2b$10$AAw88YyaTZz15M3QSe2Wb.HcFt7pT5U2DVOa.EgEa6LxREW1e4RhC','Test User Name',NULL,NULL,'Male',24,NULL,'55-888',NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 06:00:56','Active','2026-09-01 11:01:18'),(2,'testpatient1','$2b$10$w4Zh4S0aU5Sl8dr8DLDRUOUf3HlR2jdrvWyWGTnet2w1nIogcnifi','John Doe','profiles/1788253770425-48683213.jpeg','1990-05-15','Male',36,'john@example.com','555-1234','Post-surgery recovery',1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 09:09:30','Active','2026-09-01 09:54:29'),(6,'jane','$2b$10$86ixN4J5bAi.K2RoyY6Ge.yCgn5w7Le/qskla5a1l9GwHs9xvld7q','jane',NULL,'2001-09-08','Male',24,'jane@gmail.com','4678657897',NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-02 10:05:48','Active','2026-09-02 10:05:48'),(7,'das','$2b$10$WFpkMlGnVbi/pRddLAyb4eRlrQSp6PpRX3rF5Hp/y.N98hjyJI14W','das',NULL,'2001-09-09','Male',24,'das@gmail.com','5745689796',NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-03 08:38:22','Active','2026-09-03 08:38:22'),(8,'dass','$2b$10$5pDsxx5P7G.Bi3KjOZGzBOazwLLis3jdlcZMVnY63XW/AZ44u6qka','dass',NULL,'2001-09-24','Male',24,'sas@gmail.com','654325432432',NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-03 08:39:25','Active','2026-09-03 08:39:25');
+INSERT INTO `users` VALUES (1,'testuser','$2b$10$AAw88YyaTZz15M3QSe2Wb.HcFt7pT5U2DVOa.EgEa6LxREW1e4RhC','Test User Name',NULL,'2004-09-10','Male',21,NULL,'55-888',NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 06:00:56','Active','2026-09-04 06:48:25'),(2,'testpatient1','$2b$10$w4Zh4S0aU5Sl8dr8DLDRUOUf3HlR2jdrvWyWGTnet2w1nIogcnifi','John Doe','profiles/1788253770425-48683213.jpeg','1990-05-15','Male',36,'john@example.com','555-1234','Post-surgery recovery',1,'Dr. Admin Smith',0,NULL,0,'2026-09-01 09:09:30','Active','2026-09-04 08:47:12'),(7,'doies','$2b$10$uM1NE0BFBNLZZDzPD.TUlOKqQaUguLGG244PCN4hED7vqYRV6CEWO','doies','profiles/1788509705962-864597540.png','2001-09-10','Male',24,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 08:15:06','Active','2026-09-04 08:15:06'),(8,'im','$2b$10$At76LqLX6hEsb/WwazZ4Z.6vCth5SXY8KjS.mJy4HyDpdR5tDq5Ci','im',NULL,'2001-09-10','Male',24,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 08:18:10','Active','2026-09-04 08:18:10'),(9,'imo','$2b$10$ooncETqbT9ze4QEbMFLSfui93ZDjMPvwrPDPB580D3PlWZ5J1zUQO','imo','profiles/1788509910154-16418111.png',NULL,'Male',43,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 08:18:30','Active','2026-09-04 08:18:30'),(10,'test','$2b$10$EUEY4DORBht1vr5um.lLEO4F4gLNk3Z8G1drN.uCHkanC2N9uXBaS','test','profiles/1788510208797-303115437.png',NULL,'Male',30,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 08:23:29','Active','2026-09-04 08:23:29'),(11,'img','$2b$10$o8lxAnZIt4RMbctSyKL2sOrSm54o203oYjsG.4nuYxaoIsQNbbV7W','large img','profiles/1788511928296-798882666.jpg','2001-09-11','Male',24,'addd@gmail.com',NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 08:52:08','Active','2026-09-04 12:12:39'),(12,'ant12','$2b$10$KXLKBv2fc3wm.Y4p6Tt4lu/k7NkdefzoTyZfvhfTzuMJlBWVOAPB2','ant',NULL,'2001-09-10','Male',24,'ant@gmail.com','5674370986','hlooo',1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:28:47','Active','2026-09-04 10:28:47'),(15,'ant1233','$2b$10$NGP7DWEgg5fh0lOeaQQWe.zo7alfZiq.C7.CYAfm1u9msPTu9k5d6','ant',NULL,'2001-09-03','Male',25,'ant3@gmail.com','5479865478','rqwef',1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:29:58','Active','2026-09-04 10:29:58'),(16,'sdc','$2b$10$Ra9ZB4xy.8guo6qYOr2BvOIpVbB3jZTVQfCSvMOtE0IDE15TtX88C','asdc',NULL,NULL,'Male',NULL,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:30:13','Active','2026-09-04 10:30:13'),(17,'asfv','$2b$10$scVsJGpZ.9yoqNdfloB.zuSEBtT5BMhouWT6x5XNwVPIQPA.7rzLe','das',NULL,'2001-09-10','Male',24,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:31:34','Active','2026-09-04 10:31:34'),(20,'123','$2b$10$hiWa4PfxJdPuSjujcujzPO2yPepgwYdIKpfjD59cqzCqZA.7T7sk.','das',NULL,'2001-09-10','Male',24,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:33:00','Active','2026-09-04 10:33:00'),(23,'1234','$2b$10$w9U8tblvFMFr0dabn0F68.pnZI8oJesl6rryZE5GHH8k1es9Pi4r2','das',NULL,'2001-09-10','Male',24,'eiufhu2@gmail.com',NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:35:57','Active','2026-09-04 10:35:57'),(24,'sde23','$2b$10$XF8rwY.VxEYdKjU0jqDkMuqR21x32vJCjXanLIpbwr5YsAMYLNGy.','sde','profiles/1788518227246-331832920.jpg',NULL,'Male',NULL,'12d@gmail.com',NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:37:07','Active','2026-09-04 10:37:07'),(25,'das3','$2b$10$Bi/i7dNg2u.6EgcL2a/Pau1fR2iawRtNqJQa7McGS1bXi5pXaP1H6','dasd','profiles/1788518312250-990915952.png',NULL,'Male',NULL,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:38:32','Active','2026-09-04 10:38:32'),(26,'das','$2b$10$sZdroXBWiSPzHSAeHmgz1ebsiBx7yQ.w73yHWkii1c50MYORmKU3K','das',NULL,NULL,'Male',NULL,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:40:24','Active','2026-09-04 10:40:24'),(28,'ergf','$2b$10$oL9XPAoQPRKVGLElZlcj/.Rn1KX.HBVoHtYpf.l2PScY7Jsv60J42','rfw',NULL,NULL,'Male',NULL,NULL,NULL,NULL,1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:44:14','Active','2026-09-04 10:44:14'),(29,'add','$2b$10$wNcB4mRFtiKY08ItGgl25ubX/zThKNNr233qG3Vq.Y4LnjubAR7qW','add',NULL,'2001-09-10','Male',24,'add@gmail.com',NULL,'asef',1,'Dr. Admin Smith',0,NULL,0,'2026-09-04 10:45:47','Active','2026-09-04 11:08:27');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -228,7 +219,7 @@ CREATE TABLE `videos` (
   KEY `uploaded_by_admin_id` (`uploaded_by_admin_id`),
   KEY `idx_video_category` (`category`),
   CONSTRAINT `videos_ibfk_1` FOREIGN KEY (`uploaded_by_admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -237,10 +228,9 @@ CREATE TABLE `videos` (
 
 LOCK TABLES `videos` WRITE;
 /*!40000 ALTER TABLE `videos` DISABLE KEYS */;
-INSERT INTO `videos` VALUES (1,'My First Surgery Video','This is a test description.','https://www.youtube.com/watch?v=dQw4w9WgXcQ','youtube',NULL,'pre-op',1,'2026-09-02 09:53:48','2026-09-02 09:53:48'),(2,'My Local Server Video','Testing local MP4 upload.','videos/1788343099283-145119193.mp4','local','thumbnails/1788343099793-33729851.jpeg','post-op',1,'2026-09-02 09:58:19','2026-09-02 09:58:19'),(3,'My Local Server Video','Testing local2','videos/1788343491142-254262379.mp4','local','thumbnails/1788343491547-285988093.jpg','pre-op',1,'2026-09-02 10:04:51','2026-09-02 10:04:51');
+INSERT INTO `videos` VALUES (1,'My First Surgery Video','This is a test description.','https://www.youtube.com/watch?v=dQw4w9WgXcQ','youtube',NULL,'pre-op',1,'2026-09-02 09:53:48','2026-09-02 09:53:48'),(2,'My Local Server Video','Testing local MP4 upload.','videos/1788343099283-145119193.mp4','local','thumbnails/1788343099793-33729851.jpeg','post-op',1,'2026-09-02 09:58:19','2026-09-02 09:58:19'),(3,'My Local Server Video','Testing local2','videos/1788343491142-254262379.mp4','local','thumbnails/1788343491547-285988093.jpg','pre-op',1,'2026-09-02 10:04:51','2026-09-02 10:04:51'),(4,'My Local Server Video3','Testing local3','videos/1788343642605-72122656.mp4','local','thumbnails/1788343642928-311377829.jpg','pre-op',1,'2026-09-02 10:07:22','2026-09-02 10:07:22'),(5,'youtub','sfdghj','https://www.youtube.com/watch?v=T7RrhHEp130','youtube',NULL,'post-op',1,'2026-09-04 09:28:32','2026-09-04 09:28:32'),(6,'sdf','sdf','https://www.youtube.com/watch?v=T7RrhHEp130','youtube',NULL,'post-op',1,'2026-09-04 09:30:26','2026-09-04 09:30:26'),(7,'sadffgf','adscf','videos/1788515399313-929895810.mp4','local',NULL,'post-op',1,'2026-09-04 09:50:03','2026-09-04 09:50:03');
 /*!40000 ALTER TABLE `videos` ENABLE KEYS */;
 UNLOCK TABLES;
-SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -251,4 +241,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-03 15:07:41
+-- Dump completed on 2026-09-04 18:14:14

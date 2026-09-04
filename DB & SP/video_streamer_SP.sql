@@ -193,7 +193,26 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `user_getbyid`(
     IN p_doctor_id INT
 )
 BEGIN
-    SELECT *
+    SELECT 
+    id,
+    username,
+    password_hash,
+    name,
+    photo_url,
+    DATE_FORMAT(dob, '%Y-%m-%d') AS dob,
+    sex,
+    age,
+    email,
+    phone_number,
+    note,
+    doctor_id,
+    doctor_name,
+    current_streak,
+    last_active_date,
+    total_time_on_platform_seconds,
+    registered_date,
+    status,
+    updated_at
     FROM users 
     WHERE id = p_user_id AND doctor_id = p_doctor_id;
 END$$
