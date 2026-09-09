@@ -77,6 +77,9 @@ app.use('/api/admin/users/get', getUserByIdRoutes);
 app.use('/api/admin/users/edit', editUserRoutes);
 app.use('/api/admin/users/delete', deleteUserRoutes);
 
+const listAdminsRoutes = require('./modules/admin/manageAdmins/listAdmins/listAdmins.routes');
+app.use('/api/admin/admins/list', listAdminsRoutes);
+
 // Manage Videos Routes
 const createVideoRoutes = require('./modules/admin/manageVideos/createVideo/createVideo.routes');
 const listVideosRoutes = require('./modules/admin/manageVideos/listVideos/listVideos.routes');
@@ -89,5 +92,23 @@ app.use('/api/admin/videos/list', listVideosRoutes);
 app.use('/api/admin/videos/get', getVideoByIdRoutes);
 app.use('/api/admin/videos/edit', editVideoRoutes);
 app.use('/api/admin/videos/delete', deleteVideoRoutes);
+
+// Manage Languages Routes (Admin)
+const listAdminLanguagesRoutes = require('./modules/admin/languages/listLanguages/listLanguages.routes');
+app.use('/api/admin/languages/list', listAdminLanguagesRoutes);
+
+// User Facing Routes
+const listLanguagesRoutes = require('./modules/user/languages/listLanguages/listLanguages.routes');
+const listUserVideosRoutes = require('./modules/user/videos/listVideosByCategory/listVideosByCategory.routes');
+
+app.use('/api/user/languages/list', listLanguagesRoutes);
+app.use('/api/user/videos/list', listUserVideosRoutes);
+
+const listProfilesRoutes = require('./modules/user/profiles/listProfiles/listProfiles.routes');
+app.use('/api/user/profiles/list', listProfilesRoutes);
+
+// App Version Check Route
+const checkVersionRoutes = require('./modules/user/appVersion/checkVersion/checkVersion.routes');
+app.use('/api/app-version/check', checkVersionRoutes);
 
 module.exports = app;

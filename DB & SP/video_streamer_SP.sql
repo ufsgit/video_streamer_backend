@@ -1,4 +1,60 @@
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `admin_list_languages`()
+BEGIN
+    SELECT 
+        id, 
+        language_name 
+    FROM languages 
+    WHERE delete_status = 0;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `check_app_version`(
+    IN p_current_version VARCHAR(20),
+    IN p_is_admin_update TINYINT(1)
+)
+BEGIN
+    -- Declare memory variables
+    DECLARE v_min_version VARCHAR(20);
+    DECLARE v_max_version VARCHAR(20);
+    DECLARE v_download_link TEXT;
+    DECLARE v_update_message TEXT;
+    DECLARE v_is_force_update TINYINT(1);
+    DECLARE v_needs_update BOOLEAN DEFAULT FALSE;
+
+    -- 1. Grab data instantly (using the index you created above)
+    SELECT 
+        min_version, max_version, download_link, update_message, is_force_update
+    INTO 
+        v_min_version, v_max_version, v_download_link, v_update_message, v_is_force_update
+    FROM 
+        app_versions 
+    WHERE 
+        is_admin_update = p_is_admin_update
+    ORDER BY 
+        id DESC 
+    LIMIT 1;
+
+    -- 2. Do the math in memory (ultra fast)
+    IF INET_ATON(SUBSTRING_INDEX(CONCAT(p_current_version, '.0.0.0'), '.', 4)) NOT BETWEEN 
+       INET_ATON(SUBSTRING_INDEX(CONCAT(v_min_version, '.0.0.0'), '.', 4)) AND 
+       INET_ATON(SUBSTRING_INDEX(CONCAT(v_max_version, '.0.0.0'), '.', 4)) 
+       AND v_is_force_update = 1 THEN
+        SET v_needs_update = TRUE;
+    END IF;
+
+    -- 3. Return the result
+    IF v_needs_update THEN
+        SELECT 1 AS update_required, v_download_link AS download_link, v_update_message AS update_message;
+    ELSE
+        SELECT 0 AS update_required, '' AS download_link, '' AS update_message;
+    END IF;
+    
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `dash_get_activity_logs`()
 BEGIN
     SELECT 
@@ -50,6 +106,52 @@ BEGIN
     FROM user_activity_logs 
     WHERE action = 'LOGIN';
 END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_active_languages`()
+BEGIN
+    SELECT 
+        id, 
+        language_name 
+    FROM 
+        languages 
+    WHERE 
+        delete_status = 0;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_videos_by_category_and_language`(
+            IN p_category VARCHAR(50),
+            IN p_language_id INT,
+            IN p_limit INT,
+            IN p_offset INT,
+            IN p_search VARCHAR(255) 
+        )
+BEGIN
+            SELECT 
+                id, 
+                title, 
+                description, 
+                video_url, 
+                language_id, 
+                language, 
+                video_source, 
+                thumbnail_url, 
+                category, 
+                created_at 
+            FROM videos 
+            WHERE category = p_category
+              AND (p_language_id IS NULL OR language_id = p_language_id)
+              AND (
+                  p_search IS NULL 
+                  OR title LIKE CONCAT('%', p_search, '%')
+                  OR description LIKE CONCAT('%', p_search, '%')
+              )
+            ORDER BY created_at DESC
+            LIMIT p_limit OFFSET p_offset;
+        END$$
 DELIMITER ;
 
 DELIMITER $$
@@ -193,26 +295,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `user_getbyid`(
     IN p_doctor_id INT
 )
 BEGIN
-    SELECT 
-    id,
-    username,
-    password_hash,
-    name,
-    photo_url,
-    DATE_FORMAT(dob, '%Y-%m-%d') AS dob,
-    sex,
-    age,
-    email,
-    phone_number,
-    note,
-    doctor_id,
-    doctor_name,
-    current_streak,
-    last_active_date,
-    total_time_on_platform_seconds,
-    registered_date,
-    status,
-    updated_at
+    SELECT *
     FROM users 
     WHERE id = p_user_id AND doctor_id = p_doctor_id;
 END$$
@@ -251,14 +334,35 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `video_create`(
     IN p_video_source ENUM('local', 'youtube', 'vimeo', 'external'),
     IN p_thumbnail_url VARCHAR(255),
     IN p_category ENUM('pre-op', 'post-op'),
-    IN p_admin_id INT
+    IN p_admin_id INT,
+    IN p_language_id INT,
+    IN p_language VARCHAR(255)
 )
 BEGIN
     INSERT INTO videos (
-        title, description, video_url, video_source, thumbnail_url, category, uploaded_by_admin_id, created_at
+        title, 
+        description, 
+        video_url, 
+        video_source, 
+        thumbnail_url, 
+        category, 
+        uploaded_by_admin_id, 
+        language_id,
+        language,
+        created_at
     ) VALUES (
-        p_title, p_description, p_video_url, p_video_source, p_thumbnail_url, p_category, p_admin_id, CURRENT_TIMESTAMP
+        p_title, 
+        p_description, 
+        p_video_url, 
+        p_video_source, 
+        p_thumbnail_url, 
+        p_category, 
+        p_admin_id, 
+        p_language_id,
+        p_language,
+        CURRENT_TIMESTAMP
     );
+    
     SELECT LAST_INSERT_ID() AS new_video_id;
 END$$
 DELIMITER ;
@@ -269,14 +373,48 @@ BEGIN DELETE FROM videos WHERE id = p_id; END$$
 DELIMITER ;
 
 DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `video_edit`(IN p_id INT, IN p_title VARCHAR(255), IN p_description TEXT, IN p_video_url VARCHAR(255), IN p_video_source VARCHAR(50), IN p_thumbnail_url VARCHAR(255), IN p_category VARCHAR(50))
-BEGIN UPDATE videos SET title = COALESCE(p_title, title), description = COALESCE(p_description, description), video_url = COALESCE(p_video_url, video_url), video_source = COALESCE(p_video_source, video_source), thumbnail_url = COALESCE(p_thumbnail_url, thumbnail_url), category = COALESCE(p_category, category) WHERE id = p_id; END$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `video_edit`(
+    IN p_id INT, 
+    IN p_title VARCHAR(255), 
+    IN p_description TEXT, 
+    IN p_video_url VARCHAR(255), 
+    IN p_video_source VARCHAR(50), 
+    IN p_thumbnail_url VARCHAR(255), 
+    IN p_category VARCHAR(50),
+    IN p_language_id INT,
+    IN p_language VARCHAR(255)
+)
+BEGIN 
+    UPDATE videos 
+    SET 
+        title = COALESCE(p_title, title), 
+        description = COALESCE(p_description, description), 
+        video_url = COALESCE(p_video_url, video_url), 
+        video_source = COALESCE(p_video_source, video_source), 
+        thumbnail_url = COALESCE(p_thumbnail_url, thumbnail_url), 
+        category = COALESCE(p_category, category),
+        language_id = COALESCE(p_language_id, language_id),
+        language = COALESCE(p_language, language)
+    WHERE id = p_id; 
+END$$
 DELIMITER ;
 
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `video_getbyid`(IN p_id INT)
 BEGIN
-    SELECT * 
+    SELECT 
+        id, 
+        title, 
+        description, 
+        video_url, 
+        language_id, 
+        language, 
+        video_source, 
+        thumbnail_url, 
+        category, 
+        uploaded_by_admin_id,
+        created_at,
+        updated_at
     FROM videos 
     WHERE id = p_id;
 END$$
