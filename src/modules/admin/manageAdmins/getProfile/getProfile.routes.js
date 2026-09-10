@@ -1,29 +1,28 @@
 const express = require('express');
 const router = express.Router();
-const listUsersController = require('./listUsers.controller');
+const { getProfile } = require('./getProfile.controller');
 const { protect, adminOnly } = require('../../../../middlewares/auth.middleware');
 
 /**
  * @swagger
- * /api/admin/users/list:
+ * /api/admin/profile:
  *   get:
- *     summary: List all users
- *     tags: [Admin Users]
+ *     summary: Get admin profile details
+ *     tags: [Admin Applications]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Successful operation
- *       400:
- *         description: Bad request
+ *         description: Admin profile fetched successfully
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  *       404:
- *         description: Not found
+ *         description: Admin profile not found
  *       500:
  *         description: Internal server error
  */
-// GET /api/admin/users/list
-router.get('/', protect, adminOnly, listUsersController.listUsers);
+router.get('/', protect, adminOnly, getProfile);
 
 module.exports = router;

@@ -1,8 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const setupSwagger = require('./swagger');
 
 const app = express();
+
+setupSwagger(app);
 
 // 1. Pull the allowed production URL from the .env file
 const productionUrl = process.env.PRODUCTION_URL; 
@@ -80,6 +83,10 @@ app.use('/api/admin/users/delete', deleteUserRoutes);
 const listAdminsRoutes = require('./modules/admin/manageAdmins/listAdmins/listAdmins.routes');
 app.use('/api/admin/admins/list', listAdminsRoutes);
 
+const getAdminProfileRoutes = require('./modules/admin/manageAdmins/getProfile/getProfile.routes');
+app.use('/api/admin/profile', getAdminProfileRoutes);
+
+
 // Manage Videos Routes
 const createVideoRoutes = require('./modules/admin/manageVideos/createVideo/createVideo.routes');
 const listVideosRoutes = require('./modules/admin/manageVideos/listVideos/listVideos.routes');
@@ -100,9 +107,11 @@ app.use('/api/admin/languages/list', listAdminLanguagesRoutes);
 // User Facing Routes
 const listLanguagesRoutes = require('./modules/user/languages/listLanguages/listLanguages.routes');
 const listUserVideosRoutes = require('./modules/user/videos/listVideosByCategory/listVideosByCategory.routes');
+const updateVideoProgressRoutes = require('./modules/user/videos/updateProgress/updateProgress.routes');
 
 app.use('/api/user/languages/list', listLanguagesRoutes);
 app.use('/api/user/videos/list', listUserVideosRoutes);
+app.use('/api/user/videos/progress', updateVideoProgressRoutes);
 
 const listProfilesRoutes = require('./modules/user/profiles/listProfiles/listProfiles.routes');
 app.use('/api/user/profiles/list', listProfilesRoutes);

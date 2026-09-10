@@ -122,6 +122,44 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_admin_profile`(IN p_admin_id INT)
+BEGIN
+    SELECT 
+        a.*,
+        COUNT(u.id) AS total_users
+    FROM 
+        admins a
+    LEFT JOIN 
+        users u ON a.id = u.doctor_id
+    WHERE 
+        a.id = p_admin_id
+    GROUP BY 
+        a.id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_profile`(IN p_user_id INT)
+BEGIN
+    SELECT 
+        u.*,
+        COUNT(CASE WHEN uvp.is_completed = 1 THEN 1 END) AS total_video_done,
+        COUNT(CASE WHEN uvp.is_completed = 1 AND v.category = 'post-op' THEN 1 END) AS post_video_done,
+        COUNT(CASE WHEN uvp.is_completed = 1 AND v.category = 'pre-op' THEN 1 END) AS pre_video_done
+    FROM 
+        users u
+    LEFT JOIN 
+        user_video_progress uvp ON u.id = uvp.user_id
+    LEFT JOIN 
+        videos v ON uvp.video_id = v.id
+    WHERE 
+        u.id = p_user_id
+    GROUP BY 
+        u.id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_videos_by_category_and_language`(
             IN p_category VARCHAR(50),
             IN p_language_id INT,
@@ -189,6 +227,42 @@ BEGIN
     FROM users 
     WHERE username = p_username 
     LIMIT 1;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `upsert_user_video_progress`(
+    IN p_user_id INT,
+    IN p_video_id INT,
+    IN p_current_timestamp_seconds INT,
+    IN p_total_watch_time_seconds INT,
+    IN p_is_completed TINYINT(1)
+)
+BEGIN
+    INSERT INTO `user_video_progress` (
+        `user_id`, 
+        `video_id`, 
+        `current_timestamp_seconds`, 
+        `total_watch_time_seconds`, 
+        `is_completed`, 
+        `last_watched_at`, 
+        `completed_at`
+    )
+    VALUES (
+        p_user_id, 
+        p_video_id, 
+        p_current_timestamp_seconds, 
+        p_total_watch_time_seconds, 
+        p_is_completed, 
+        CURRENT_TIMESTAMP, 
+        IF(p_is_completed = 1, CURRENT_TIMESTAMP, NULL)
+    )
+    ON DUPLICATE KEY UPDATE
+        `current_timestamp_seconds` = VALUES(`current_timestamp_seconds`),
+        `total_watch_time_seconds` = VALUES(`total_watch_time_seconds`),
+        `is_completed` = IF(`is_completed` = 1, 1, VALUES(`is_completed`)),
+        `last_watched_at` = CURRENT_TIMESTAMP,
+        `completed_at` = IF(`is_completed` = 0 AND VALUES(`is_completed`) = 1, CURRENT_TIMESTAMP, `completed_at`);
 END$$
 DELIMITER ;
 
@@ -295,7 +369,26 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `user_getbyid`(
     IN p_doctor_id INT
 )
 BEGIN
-    SELECT *
+    SELECT 
+        id, 
+        username, 
+        password_hash, 
+        name, 
+        photo_url, 
+        DATE_FORMAT(dob, '%Y-%m-%d') AS dob, 
+        sex, 
+        age, 
+        email, 
+        phone_number, 
+        note, 
+        doctor_id, 
+        doctor_name, 
+        current_streak, 
+        last_active_date, 
+        total_time_on_platform_seconds, 
+        registered_date, 
+        status, 
+        updated_at
     FROM users 
     WHERE id = p_user_id AND doctor_id = p_doctor_id;
 END$$
@@ -336,7 +429,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `video_create`(
     IN p_category ENUM('pre-op', 'post-op'),
     IN p_admin_id INT,
     IN p_language_id INT,
-    IN p_language VARCHAR(255)
+    IN p_language VARCHAR(255),
+    IN p_total_duration_seconds INT
 )
 BEGIN
     INSERT INTO videos (
@@ -349,6 +443,7 @@ BEGIN
         uploaded_by_admin_id, 
         language_id,
         language,
+        total_duration_seconds,
         created_at
     ) VALUES (
         p_title, 
@@ -360,6 +455,7 @@ BEGIN
         p_admin_id, 
         p_language_id,
         p_language,
+        p_total_duration_seconds,
         CURRENT_TIMESTAMP
     );
     
@@ -382,7 +478,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `video_edit`(
     IN p_thumbnail_url VARCHAR(255), 
     IN p_category VARCHAR(50),
     IN p_language_id INT,
-    IN p_language VARCHAR(255)
+    IN p_language VARCHAR(255),
+    IN p_total_duration_seconds INT
 )
 BEGIN 
     UPDATE videos 
@@ -394,7 +491,8 @@ BEGIN
         thumbnail_url = COALESCE(p_thumbnail_url, thumbnail_url), 
         category = COALESCE(p_category, category),
         language_id = COALESCE(p_language_id, language_id),
-        language = COALESCE(p_language, language)
+        language = COALESCE(p_language, language),
+        total_duration_seconds = COALESCE(p_total_duration_seconds, total_duration_seconds)
     WHERE id = p_id; 
 END$$
 DELIMITER ;
@@ -412,6 +510,7 @@ BEGIN
         video_source, 
         thumbnail_url, 
         category, 
+        total_duration_seconds,
         uploaded_by_admin_id,
         created_at,
         updated_at

@@ -2,7 +2,7 @@ const createVideoService = require('./createVideo.service');
 
 const createVideo = async (req, res) => {
     try {
-        const { title, description, category, video_url, language_id, language } = req.body;
+        const { title, description, category, video_url, language_id, language, total_duration_seconds } = req.body;
         
         if (!title || !category) {
             return res.status(400).json({ success: false, message: 'Title and category are required.' });
@@ -45,7 +45,8 @@ const createVideo = async (req, res) => {
             category,
             adminId,
             languageId: language_id || null,
-            language: language || null
+            language: language || null,
+            totalDurationSeconds: total_duration_seconds || 0
         });
 
         res.status(201).json({

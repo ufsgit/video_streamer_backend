@@ -6,7 +6,7 @@ const getVideoByIdService = require('../getVideoById/getVideoById.service');
 const editVideo = async (req, res) => {
     try {
         const videoId = req.params.id;
-        const { title, description, category, video_url, language_id, language } = req.body;
+        const { title, description, category, video_url, language_id, language, total_duration_seconds } = req.body;
         
         const oldVideo = await getVideoByIdService.getVideoById(videoId);
         if (!oldVideo) {
@@ -68,7 +68,8 @@ const editVideo = async (req, res) => {
             thumbnailUrl,
             category: category || null,
             languageId: language_id || null,
-            language: language || null
+            language: language || null,
+            totalDurationSeconds: total_duration_seconds !== undefined ? total_duration_seconds : null
         });
 
         res.status(200).json({ success: true, message: 'Video updated successfully' });
