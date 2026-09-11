@@ -15,9 +15,42 @@ const { uploadVideoAndThumbnail } = require('../../../../middlewares/upload.midd
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
+ *             required:
+ *               - title
+ *               - category
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Title of the video
+ *               description:
+ *                 type: string
+ *                 description: Video description
+ *               category:
+ *                 type: string
+ *                 description: Category of the video
+ *               video_url:
+ *                 type: string
+ *                 description: Optional URL for external videos (e.g., YouTube/Vimeo) if no file uploaded
+ *               language_id:
+ *                 type: integer
+ *                 description: Language ID
+ *               language:
+ *                 type: string
+ *                 description: Language name
+ *               total_duration_seconds:
+ *                 type: integer
+ *                 description: Total duration in seconds
+ *               thumbnail:
+ *                 type: string
+ *                 format: binary
+ *                 description: Thumbnail image file
+ *               video:
+ *                 type: string
+ *                 format: binary
+ *                 description: Video file (if not providing video_url)
  *     responses:
  *       200:
  *         description: Successful operation

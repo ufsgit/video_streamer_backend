@@ -5,29 +5,59 @@ const authController = require('./auth.controller');
 // Public routes (No token required)
 /**
  * @swagger
- * /api/auth/login:
+ * /api/auth/admin/login:
  *   post:
- *     summary: Login
+ *     summary: Admin Login
  *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Successful operation
+ *         description: Successful login
  *       400:
  *         description: Bad request
  *       401:
  *         description: Unauthorized
- *       404:
- *         description: Not found
- *       500:
- *         description: Internal server error
+ * 
+ * /api/auth/user/login:
+ *   post:
+ *     summary: User Login
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successful login
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Account inactive
  */
 router.post('/admin/login', authController.loginAdmin);
 router.post('/user/login', authController.loginUser);
