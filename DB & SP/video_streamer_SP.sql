@@ -125,7 +125,16 @@ DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_admin_profile`(IN p_admin_id INT)
 BEGIN
     SELECT 
-        a.*,
+        a.id,
+        a.username,
+        a.password_hash,
+        a.name,
+        a.photo_url,
+        a.email,
+        a.phone_number,
+        DATE_FORMAT(a.dob, '%Y-%m-%d') AS dob,
+        a.created_at,
+        a.updated_at,
         COUNT(u.id) AS total_users
     FROM 
         admins a
