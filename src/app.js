@@ -13,36 +13,17 @@ const productionUrl = process.env.PRODUCTION_URL;
 // 2. Check the environment variable from the .env file
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-// 3. Configure CORS dynamically
-const corsOptions = {
-  origin: function (origin, callback) {
-    // If in development mode, allow everything
-    if (isDevelopment) {
-      return callback(null, true);
-    }
-
-    // If in production, strictly enforce the production URL from .env
-    if (origin === productionUrl || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-};
-
-// 4. Apply the CORS middleware
-app.use(cors(corsOptions));
-
-// Middleware to parse JSON bodies
-app.use(express.json());
-
 // Global Request Logger Middleware
 // app.use((req, res, next) => {
 //     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-//     if (Object.keys(req.body || {}).length > 0) console.log("Body:", req.body);
-//     if (req.files) console.log("Files:", req.files);
 //     next();
 // });
+
+// Apply the CORS middleware simply
+app.use(cors());
+
+// Middleware to parse JSON bodies
+app.use(express.json());
 
 // Serve the uploads folder as static files (so Flutter can access videos/images)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -71,7 +52,7 @@ app.use('/api/admin/dashboard/activity-logs', activityLogsRoutes);
 const createUserRoutes = require('./modules/admin/manageUsers/createUser/createUser.routes');
 const listUsersRoutes = require('./modules/admin/manageUsers/listUsers/listUsers.routes');
 const getUserByIdRoutes = require('./modules/admin/manageUsers/getUserById/getUserById.routes');
-const getUserEngagementRoutes = require('./modules/admin/manageUsers/getUserEngagement/getUserEngagement.routes');
+// const getUserEngagementRoutes = require('./modules/admin/manageUsers/getUserEngagement/getUserEngagement.routes');
 const editUserRoutes = require('./modules/admin/manageUsers/editUser/editUser.routes');
 const deleteUserRoutes = require('./modules/admin/manageUsers/deleteUser/deleteUser.routes');
 
@@ -79,7 +60,7 @@ const deleteUserRoutes = require('./modules/admin/manageUsers/deleteUser/deleteU
 app.use('/api/admin/users/create', createUserRoutes);
 app.use('/api/admin/users/list', listUsersRoutes);
 app.use('/api/admin/users/get', getUserByIdRoutes);
-app.use('/api/admin/users/engagement', getUserEngagementRoutes);
+// app.use('/api/admin/users/engagement', getUserEngagementRoutes);
 app.use('/api/admin/users/edit', editUserRoutes);
 app.use('/api/admin/users/delete', deleteUserRoutes);
 
@@ -117,13 +98,19 @@ app.use('/api/user/videos/list', listUserVideosRoutes);
 app.use('/api/user/videos/progress', updateVideoProgressRoutes);
 
 const listProfilesRoutes = require('./modules/user/profiles/listProfiles/listProfiles.routes');
-const updateLanguageRoutes = require('./modules/user/profiles/updateLanguage/updateLanguage.routes');
+// const updateLanguageRoutes = require('./modules/user/profiles/updateLanguage/updateLanguage.routes');
 
 app.use('/api/user/profiles/list', listProfilesRoutes);
-app.use('/api/user/profiles/language', updateLanguageRoutes);
+// app.use('/api/user/profiles/language', updateLanguageRoutes);
 
 // App Version Check Route
 const checkVersionRoutes = require('./modules/user/appVersion/checkVersion/checkVersion.routes');
 app.use('/api/app-version/check', checkVersionRoutes);
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+});
 
 module.exports = app;
