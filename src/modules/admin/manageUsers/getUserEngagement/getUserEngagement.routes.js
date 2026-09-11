@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const getUserByIdController = require('./getUserById.controller');
+const getUserEngagementController = require('./getUserEngagement.controller');
 const { protect, adminOnly } = require('../../../../middlewares/auth.middleware');
 
 /**
  * @swagger
- * /api/admin/users/get/{id}:
+ * /api/admin/users/engagement/{id}:
  *   get:
- *     summary: Get user details by ID
+ *     summary: Get user engagement metrics
  *     tags: [Admin Users]
  *     security:
  *       - bearerAuth: []
@@ -18,6 +18,12 @@ const { protect, adminOnly } = require('../../../../middlewares/auth.middleware'
  *         schema:
  *           type: integer
  *         description: User ID
+ *       - in: query
+ *         name: language_id
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: Optional language ID to filter total assigned videos
  *     responses:
  *       200:
  *         description: Successful operation
@@ -30,10 +36,7 @@ const { protect, adminOnly } = require('../../../../middlewares/auth.middleware'
  *       500:
  *         description: Internal server error
  */
-// GET /api/admin/users/get/:id
-router.get('/:id', protect, adminOnly, getUserByIdController.getUserById);
-
-
-
+// GET /api/admin/users/engagement/:id
+router.get('/:id', protect, adminOnly, getUserEngagementController.getUserEngagement);
 
 module.exports = router;

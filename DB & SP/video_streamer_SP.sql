@@ -404,6 +404,29 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `user_get_engagement`(
+    IN p_user_id INT,
+    IN p_language_id INT
+)
+BEGIN
+    SELECT 
+        -- 1. Total Assigned Videos filtered by language
+        (SELECT COUNT(*) 
+         FROM videos v 
+         WHERE (p_language_id IS NULL OR v.language_id = p_language_id)
+        ) AS total_assigned,
+
+        -- 2. Total Completed Videos for this user
+        (SELECT COUNT(*) 
+         FROM user_video_progress uvp 
+         WHERE uvp.user_id = p_user_id 
+           AND uvp.is_completed = 1
+        ) AS total_completed;
+        
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `user_lists`(
     IN p_doctor_id INT,
     IN p_limit INT,

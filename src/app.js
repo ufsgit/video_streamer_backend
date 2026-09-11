@@ -71,12 +71,15 @@ app.use('/api/admin/dashboard/activity-logs', activityLogsRoutes);
 const createUserRoutes = require('./modules/admin/manageUsers/createUser/createUser.routes');
 const listUsersRoutes = require('./modules/admin/manageUsers/listUsers/listUsers.routes');
 const getUserByIdRoutes = require('./modules/admin/manageUsers/getUserById/getUserById.routes');
+const getUserEngagementRoutes = require('./modules/admin/manageUsers/getUserEngagement/getUserEngagement.routes');
 const editUserRoutes = require('./modules/admin/manageUsers/editUser/editUser.routes');
 const deleteUserRoutes = require('./modules/admin/manageUsers/deleteUser/deleteUser.routes');
 
+// Mount routes
 app.use('/api/admin/users/create', createUserRoutes);
 app.use('/api/admin/users/list', listUsersRoutes);
 app.use('/api/admin/users/get', getUserByIdRoutes);
+app.use('/api/admin/users/engagement', getUserEngagementRoutes);
 app.use('/api/admin/users/edit', editUserRoutes);
 app.use('/api/admin/users/delete', deleteUserRoutes);
 
@@ -114,7 +117,10 @@ app.use('/api/user/videos/list', listUserVideosRoutes);
 app.use('/api/user/videos/progress', updateVideoProgressRoutes);
 
 const listProfilesRoutes = require('./modules/user/profiles/listProfiles/listProfiles.routes');
+const updateLanguageRoutes = require('./modules/user/profiles/updateLanguage/updateLanguage.routes');
+
 app.use('/api/user/profiles/list', listProfilesRoutes);
+app.use('/api/user/profiles/language', updateLanguageRoutes);
 
 // App Version Check Route
 const checkVersionRoutes = require('./modules/user/appVersion/checkVersion/checkVersion.routes');
