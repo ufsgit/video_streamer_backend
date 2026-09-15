@@ -3,7 +3,11 @@ const getUserEngagementService = require('./getUserEngagement.service');
 const getUserEngagement = async (req, res) => {
     try {
         const userId = req.params.id;
-        const languageId = req.query.language_id;
+        // Parse the query parameter, ignoring 'null' or 'undefined' string literals
+        let languageId = req.query.language_id;
+        if (languageId === 'null' || languageId === 'undefined') {
+            languageId = null;
+        }
         
         const engagement = await getUserEngagementService.getUserEngagement(userId, languageId);
         

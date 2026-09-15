@@ -3,13 +3,13 @@ const pool = require('../../../../../db');
 const createUser = async (userData) => {
     const { 
         username, passwordHash, name, dob, sex, 
-        email, phoneNumber, note, doctorId, photoUrl, doctorName, age
+        email, phoneNumber, note, doctorId, photoUrl, doctorName, age, languageId, languageName
     } = userData;
 
     // Call the stored procedure with arguments in the exact schema order
     const [rows] = await pool.query(
-        'CALL user_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [username, passwordHash, name, photoUrl, dob, sex, age, email, phoneNumber, note, doctorId, doctorName]
+        'CALL user_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [username, passwordHash, name, photoUrl, dob, sex, age, email, phoneNumber, note, doctorId, doctorName, languageId, languageName]
     );
 
     // The SP returns the LAST_INSERT_ID() as new_user_id

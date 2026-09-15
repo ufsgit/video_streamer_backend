@@ -6,11 +6,11 @@ const getUserById = async (userId, doctorId) => {
 };
 
 const editUser = async (userId, doctorId, updateData) => {
-    const { name, dob, sex, email, phoneNumber, note, status, age, photoUrl, passwordHash } = updateData;
+    const { name, dob, sex, email, phoneNumber, note, status, age, photoUrl, passwordHash, languageId, languageName } = updateData;
 
     await pool.query(
-        'CALL user_edit(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [userId, doctorId, name, photoUrl, dob, sex, age, email, phoneNumber, note, status, passwordHash]
+        'CALL user_edit(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, doctorId, name, photoUrl, dob, sex, age, email, phoneNumber, note, status, passwordHash, languageId, languageName]
     );
 };
 

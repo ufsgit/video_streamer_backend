@@ -7,7 +7,7 @@ const editUser = async (req, res) => {
     try {
         const userId = req.params.id;
         const doctorId = req.user.id;
-        const { name, dob, sex, email, phone_number, note, status, age, password } = req.body;
+        const { name, dob, sex, email, phone_number, note, status, age, password, language_id, language_name } = req.body;
 
         if (!name || !sex || !status) {
             return res.status(400).json({ success: false, message: 'Name, sex, and status are required' });
@@ -46,7 +46,9 @@ const editUser = async (req, res) => {
             status,
             age: age || null,
             photoUrl,
-            passwordHash
+            passwordHash,
+            languageId: language_id || null,
+            languageName: language_name || null
         });
 
         res.status(200).json({

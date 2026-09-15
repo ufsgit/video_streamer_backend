@@ -3,7 +3,7 @@ const { hashPassword } = require('../../../../utils/hash.util');
 
 const createUser = async (req, res) => {
     try {
-        const { username, password, name, dob, sex, email, phone_number, note, age } = req.body;
+        const { username, password, name, dob, sex, email, phone_number, note, age, language_id, language_name } = req.body;
         
         if (!username || !password || !name || !sex) {
             return res.status(400).json({ success: false, message: 'Username, password, name, and sex are required.' });
@@ -33,7 +33,9 @@ const createUser = async (req, res) => {
             doctorId,
             photoUrl,
             doctorName,
-            age: age || null
+            age: age || null,
+            languageId: language_id || null,
+            languageName: language_name || null
         });
 
         res.status(201).json({
