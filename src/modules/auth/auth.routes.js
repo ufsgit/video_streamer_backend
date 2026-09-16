@@ -20,9 +20,9 @@ const authController = require('./auth.controller');
  *               - password
  *             properties:
  *               username:
- *                 type: string
+ *                 type: admin
  *               password:
- *                 type: string
+ *                 type: 123
  *     responses:
  *       200:
  *         description: Successful login
@@ -46,9 +46,9 @@ const authController = require('./auth.controller');
  *               - password
  *             properties:
  *               username:
- *                 type: string
+ *                 type: testuser
  *               password:
- *                 type: string
+ *                 type: 123
  *     responses:
  *       200:
  *         description: Successful login

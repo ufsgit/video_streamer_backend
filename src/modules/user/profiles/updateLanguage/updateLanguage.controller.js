@@ -4,6 +4,7 @@ const updateLanguage = async (req, res) => {
     try {
         const userId = req.user.id;
         const { language_id, language_name } = req.body;
+        console.log(userId, language_id, language_name);
 
         if (!language_id || !language_name) {
             return res.status(400).json({ success: false, message: 'Both language_id and language_name are required.' });

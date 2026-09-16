@@ -109,6 +109,17 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `GetTotalAssignedVideosByLanguage`(
+            IN p_language_id INT
+        )
+BEGIN
+            SELECT COUNT(*) AS totalAssigned
+            FROM vdo 
+            WHERE language_id = p_language_id;
+        END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_active_languages`()
 BEGIN
     SELECT 
@@ -144,6 +155,54 @@ BEGIN
         a.id = p_admin_id
     GROUP BY 
         a.id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_engagement_progress`(
+    IN p_user_id INT,
+    IN p_category VARCHAR(50) -- Pass 'pre-op', 'post-op', or NULL for all
+)
+BEGIN
+    DECLARE v_total_assigned INT DEFAULT 0;
+    DECLARE v_total_completed INT DEFAULT 0;
+    DECLARE v_overall_progress DECIMAL(5,2) DEFAULT 0.00;
+    DECLARE v_user_language_id INT;
+
+    -- 1. Grab the language_id of the user
+    SELECT language_id INTO v_user_language_id 
+    FROM users 
+    WHERE id = p_user_id;
+
+    -- 2. Get the total number of assigned videos (Videos that match the user's language and category)
+    SELECT COUNT(id) 
+    INTO v_total_assigned
+    FROM videos 
+    WHERE language_id = v_user_language_id
+      AND (p_category IS NULL OR p_category = '' OR category = p_category);
+
+    -- 3. Get the total number of COMPLETED videos (Matches user's language and category)
+    SELECT COUNT(p.video_id) 
+    INTO v_total_completed
+    FROM user_video_progress p
+    JOIN videos v ON p.video_id = v.id
+    WHERE p.user_id = p_user_id 
+      AND p.is_completed = 1
+      AND v.language_id = v_user_language_id
+      AND (p_category IS NULL OR p_category = '' OR v.category = p_category);
+
+    -- 4. Calculate the overall progress percentage
+    IF v_total_assigned > 0 THEN
+        SET v_overall_progress = ROUND((v_total_completed / v_total_assigned) * 100, 2);
+    ELSE
+        SET v_overall_progress = 0.00;
+    END IF;
+
+    -- 5. Return the result set
+    SELECT 
+        v_total_assigned AS total_assigned,
+        v_total_completed AS total_completed,
+        v_overall_progress AS overall_progress_percentage;
 END$$
 DELIMITER ;
 
@@ -277,56 +336,33 @@ DELIMITER ;
 
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `user_create`(
-    IN p_username VARCHAR(50),
-    IN p_password_hash VARCHAR(255),
-    IN p_name VARCHAR(100),
-    IN p_photo_url VARCHAR(255),
-    IN p_dob DATE,
-    IN p_sex ENUM('Male', 'Female', 'Other'),
-    IN p_age INT,
-    IN p_email VARCHAR(100),
-    IN p_phone_number VARCHAR(20),
-    IN p_note TEXT,
-    IN p_doctor_id INT,
-    IN p_doctor_name VARCHAR(100)
-)
+                IN p_username VARCHAR(50),
+                IN p_password_hash VARCHAR(255),
+                IN p_name VARCHAR(100),
+                IN p_photo_url VARCHAR(255),
+                IN p_dob DATE,
+                IN p_sex ENUM('Male', 'Female', 'Other'),
+                IN p_age INT,
+                IN p_email VARCHAR(100),
+                IN p_phone_number VARCHAR(20),
+                IN p_note TEXT,
+                IN p_doctor_id INT,
+                IN p_doctor_name VARCHAR(100),
+                IN p_language_id INT,
+                IN p_language_name VARCHAR(100)
+            )
 BEGIN
-    -- Insert the new user
-    INSERT INTO users (
-        username, 
-        password_hash, 
-        name, 
-        photo_url,
-        dob, 
-        sex, 
-        age,
-        email, 
-        phone_number, 
-        note, 
-        doctor_id,
-        doctor_name,
-        status,
-        registered_date
-    ) VALUES (
-        p_username, 
-        p_password_hash, 
-        p_name, 
-        p_photo_url,
-        p_dob, 
-        p_sex, 
-        p_age,
-        p_email, 
-        p_phone_number, 
-        p_note, 
-        p_doctor_id,
-        p_doctor_name,
-        'Active',
-        CURRENT_TIMESTAMP
-    );
-    
-    -- Return the newly created user's ID
-    SELECT LAST_INSERT_ID() AS new_user_id;
-END$$
+                INSERT INTO users (
+                    username, password_hash, name, photo_url, dob, sex, age,
+                    email, phone_number, note, doctor_id, doctor_name,
+                    language_id, language_name, status, registered_date
+                ) VALUES (
+                    p_username, p_password_hash, p_name, p_photo_url, p_dob, p_sex, p_age,
+                    p_email, p_phone_number, p_note, p_doctor_id, p_doctor_name,
+                    p_language_id, p_language_name, 'Active', CURRENT_TIMESTAMP
+                );
+                SELECT LAST_INSERT_ID() AS new_user_id;
+            END$$
 DELIMITER ;
 
 DELIMITER $$
@@ -342,65 +378,51 @@ DELIMITER ;
 
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `user_edit`(
-    IN p_user_id INT,
-    IN p_doctor_id INT,
-    IN p_name VARCHAR(100),
-    IN p_photo_url VARCHAR(255),
-    IN p_dob DATE,
-    IN p_sex ENUM('Male', 'Female', 'Other'),
-    IN p_age INT,
-    IN p_email VARCHAR(100),
-    IN p_phone_number VARCHAR(20),
-    IN p_note TEXT,
-    IN p_status ENUM('Active', 'Inactive'),
-    IN p_password_hash VARCHAR(255)
-)
+                IN p_user_id INT,
+                IN p_doctor_id INT,
+                IN p_name VARCHAR(100),
+                IN p_photo_url VARCHAR(255),
+                IN p_dob DATE,
+                IN p_sex ENUM('Male', 'Female', 'Other'),
+                IN p_age INT,
+                IN p_email VARCHAR(100),
+                IN p_phone_number VARCHAR(20),
+                IN p_note TEXT,
+                IN p_status ENUM('Active', 'Inactive'),
+                IN p_password_hash VARCHAR(255),
+                IN p_language_id INT,
+                IN p_language_name VARCHAR(100)
+            )
 BEGIN
-    UPDATE users 
-    SET 
-        name = p_name,
-        photo_url = COALESCE(p_photo_url, photo_url),
-        dob = p_dob,
-        sex = p_sex,
-        age = p_age,
-        email = p_email,
-        phone_number = p_phone_number,
-        note = p_note,
-        status = p_status,
-        password_hash = COALESCE(p_password_hash, password_hash)
-    WHERE id = p_user_id AND doctor_id = p_doctor_id;
-END$$
+                UPDATE users 
+                SET 
+                    name = p_name,
+                    photo_url = COALESCE(p_photo_url, photo_url),
+                    dob = p_dob,
+                    sex = p_sex,
+                    age = p_age,
+                    email = p_email,
+                    phone_number = p_phone_number,
+                    note = p_note,
+                    status = p_status,
+                    password_hash = COALESCE(p_password_hash, password_hash),
+                    language_id = COALESCE(p_language_id, language_id),
+                    language_name = COALESCE(p_language_name, language_name)
+                WHERE id = p_user_id AND doctor_id = p_doctor_id;
+            END$$
 DELIMITER ;
 
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `user_getbyid`(
-    IN p_user_id INT,
-    IN p_doctor_id INT
-)
+                IN p_user_id INT,
+                IN p_doctor_id INT
+            )
 BEGIN
-    SELECT 
-        id, 
-        username, 
-        password_hash, 
-        name, 
-        photo_url, 
-        DATE_FORMAT(dob, '%Y-%m-%d') AS dob, 
-        sex, 
-        age, 
-        email, 
-        phone_number, 
-        note, 
-        doctor_id, 
-        doctor_name, 
-        current_streak, 
-        last_active_date, 
-        total_time_on_platform_seconds, 
-        registered_date, 
-        status, 
-        updated_at
-    FROM users 
-    WHERE id = p_user_id AND doctor_id = p_doctor_id;
-END$$
+                SELECT 
+                    id, username, password_hash, name, photo_url, DATE_FORMAT(dob, '%Y-%m-%d') AS dob, sex, age, email, phone_number, note, language_id, language_name, doctor_id, doctor_name, language_id, language_name, current_streak, last_active_date, total_time_on_platform_seconds, registered_date, status, updated_at
+                FROM users 
+                WHERE id = p_user_id AND doctor_id = p_doctor_id;
+            END$$
 DELIMITER ;
 
 DELIMITER $$
@@ -428,27 +450,27 @@ DELIMITER ;
 
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `user_lists`(
-    IN p_doctor_id INT,
-    IN p_limit INT,
-    IN p_offset INT,
-    IN p_date_from DATE,
-    IN p_date_to DATE,
-    IN p_search_query VARCHAR(100)
-)
+                IN p_doctor_id INT,
+                IN p_limit INT,
+                IN p_offset INT,
+                IN p_date_from DATE,
+                IN p_date_to DATE,
+                IN p_search_query VARCHAR(100)
+            )
 BEGIN
-    SELECT 
-        id, name, photo_url, sex, age, email, phone_number, status, registered_date 
-    FROM users 
-    WHERE doctor_id = p_doctor_id
-      AND (p_date_from IS NULL OR DATE(registered_date) >= p_date_from)
-      AND (p_date_to IS NULL OR DATE(registered_date) <= p_date_to)
-      AND (p_search_query IS NULL OR p_search_query = '' OR 
-           name LIKE CONCAT(p_search_query, '%') OR 
-           email LIKE CONCAT(p_search_query, '%') OR 
-           phone_number LIKE CONCAT(p_search_query, '%'))
-    ORDER BY registered_date DESC
-    LIMIT p_limit OFFSET p_offset;
-END$$
+                SELECT 
+                    id, name, photo_url, sex, age, email, phone_number, language_id, language_name, status, registered_date 
+                FROM users 
+                WHERE doctor_id = p_doctor_id
+                  AND (p_date_from IS NULL OR DATE(registered_date) >= p_date_from)
+                  AND (p_date_to IS NULL OR DATE(registered_date) <= p_date_to)
+                  AND (p_search_query IS NULL OR p_search_query = '' OR 
+                       name LIKE CONCAT(p_search_query, '%') OR 
+                       email LIKE CONCAT(p_search_query, '%') OR 
+                       phone_number LIKE CONCAT(p_search_query, '%'))
+                ORDER BY registered_date DESC
+                LIMIT p_limit OFFSET p_offset;
+            END$$
 DELIMITER ;
 
 DELIMITER $$
