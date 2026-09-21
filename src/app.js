@@ -56,6 +56,7 @@ const getUserEngagementRoutes = require('./modules/admin/manageUsers/getUserEnga
 const editUserRoutes = require('./modules/admin/manageUsers/editUser/editUser.routes');
 const deleteUserRoutes = require('./modules/admin/manageUsers/deleteUser/deleteUser.routes');
 const getUserProgressRoutes = require('./modules/admin/manageUsers/getUserProgress/getUserProgress.routes');
+const getUserVideoHistoryRoutes = require('./modules/admin/manageUsers/getUserVideoHistory/getUserVideoHistory.routes');
 
 // Mount routes
 app.use('/api/admin/users/create', createUserRoutes);
@@ -63,6 +64,7 @@ app.use('/api/admin/users/list', listUsersRoutes);
 app.use('/api/admin/users/get', getUserByIdRoutes);
 app.use('/api/admin/users/engagement', getUserEngagementRoutes);
 app.use('/api/admin/users/progress', getUserProgressRoutes);
+app.use('/api/admin/users/history', getUserVideoHistoryRoutes);
 app.use('/api/admin/users/edit', editUserRoutes);
 app.use('/api/admin/users/delete', deleteUserRoutes);
 
