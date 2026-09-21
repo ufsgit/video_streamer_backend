@@ -228,6 +228,42 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_video_history`(
+    IN p_user_id INT,
+    IN p_category VARCHAR(50)
+)
+BEGIN
+    DECLARE v_user_language_id INT;
+
+    -- 1. Grab the language_id of the user
+    SELECT language_id INTO v_user_language_id 
+    FROM users 
+    WHERE id = p_user_id;
+
+    -- 2. Fetch all matching videos and left join with user's progress
+    SELECT 
+        v.id AS video_id,
+        v.title,
+        v.description,
+        v.category,
+        v.thumbnail_url,
+        IFNULL(p.is_completed, 0) AS is_completed,
+        IFNULL(p.current_timestamp_seconds, 0) AS current_timestamp_seconds,
+        IFNULL(p.total_watch_time_seconds, 0) AS total_watch_time_seconds,
+        p.last_watched_at,
+        p.completed_at
+    FROM videos v
+    LEFT JOIN user_video_progress p 
+        ON v.id = p.video_id AND p.user_id = p_user_id
+    WHERE v.language_id = v_user_language_id
+      AND (p_category IS NULL OR p_category = '' OR v.category = p_category)
+    ORDER BY 
+        p.last_watched_at DESC, -- Recently watched videos first
+        v.created_at DESC;      -- Then newest assigned videos
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_videos_by_category_and_language`(
             IN p_category VARCHAR(50),
             IN p_language_id INT,
