@@ -26,6 +26,36 @@ const { protect, adminOnly } = require('../../../../middlewares/auth.middleware'
  *     responses:
  *       200:
  *         description: Successful operation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       video_id:
+ *                         type: integer
+ *                       first_opened_at:
+ *                         type: string
+ *                         format: date-time
+ *                       last_watched_at:
+ *                         type: string
+ *                         format: date-time
+ *                       completed_at:
+ *                         type: string
+ *                         format: date-time
+ *                       current_timestamp_seconds:
+ *                         type: integer
+ *                       total_watch_time_seconds:
+ *                         type: integer
+ *                       is_completed:
+ *                         type: integer
  */
 router.get('/:id', protect, adminOnly, getUserVideoHistoryController.getUserVideoHistory);
 

@@ -7,6 +7,10 @@ const getUserProgress = async (req, res) => {
         // Grab the category from the query string (e.g., ?category=pre-op)
         let category = req.query.category || null; 
         
+        if (category) {
+            category = category.toLowerCase();
+        }
+
         // If the user selected 'all' from Swagger, treat it as null (no filter)
         if (category === 'all') {
             category = null;

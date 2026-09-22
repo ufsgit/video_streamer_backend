@@ -28,9 +28,48 @@ const { protect } = require('../../../../middlewares/auth.middleware');
  *                 type: integer
  *               is_completed:
  *                 type: boolean
+ *               first_opened_at:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Exact timestamp when video was first opened
+ *               last_watched_at:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Exact timestamp of the current progress
+ *               completed_at:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Exact timestamp when the video was completed
  *     responses:
  *       200:
  *         description: Video progress updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Video progress updated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     first_opened_at:
+ *                       type: string
+ *                       format: date-time
+ *                     last_watched_at:
+ *                       type: string
+ *                       format: date-time
+ *                     completed_at:
+ *                       type: string
+ *                       format: date-time
+ *                     current_timestamp_seconds:
+ *                       type: integer
+ *                     is_completed:
+ *                       type: integer
  *       400:
  *         description: Bad request
  *       401:

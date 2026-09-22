@@ -5,6 +5,10 @@ const getUserVideoHistory = async (req, res) => {
         const userId = req.params.id;
         let category = req.query.category || null; 
         
+        if (category) {
+            category = category.toLowerCase();
+        }
+
         if (category === 'all') {
             category = null;
         }

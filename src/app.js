@@ -103,9 +103,11 @@ app.use('/api/user/videos/progress', updateVideoProgressRoutes);
 
 const listProfilesRoutes = require('./modules/user/profiles/listProfiles/listProfiles.routes');
 const updateLanguageRoutes = require('./modules/user/profiles/updateLanguage/updateLanguage.routes');
+const reminderRoutes = require('./modules/user/reminders/reminder.routes');
 
 app.use('/api/user/profiles/list', listProfilesRoutes);
 app.use('/api/user/profiles/language', updateLanguageRoutes);
+app.use('/api/user/reminder', reminderRoutes);
 
 // App Version Check Route
 const checkVersionRoutes = require('./modules/user/appVersion/checkVersion/checkVersion.routes');

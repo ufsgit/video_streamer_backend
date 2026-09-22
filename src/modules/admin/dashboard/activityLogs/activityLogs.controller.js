@@ -13,8 +13,9 @@ const getActivityLogs = async (req, res) => {
             return {
                 patient_name: log.patient_name,
                 ward: log.ward,
-                last_login: log.last_login, // You might want to format this with a library like dayjs or date-fns in a real app
-                videos_watched: `${log.completed_videos}/${log.assigned_videos}`,
+                last_login: log.last_login, 
+                pre_watched: `${log.pre_watched} videos`,
+                post_watched: `${log.post_watched} videos`,
                 progress: `${progressPercent}% Complete`,
                 raw_progress_percent: progressPercent
             };

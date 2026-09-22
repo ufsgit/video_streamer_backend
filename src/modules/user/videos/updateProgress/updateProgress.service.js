@@ -1,18 +1,43 @@
 const pool = require('../../../../../db');
 
-const updateVideoProgress = async ({ userId, videoId, currentTimestampSeconds, totalWatchTimeSeconds, isCompleted }) => {
-    const query = 'CALL upsert_user_video_progress(?, ?, ?, ?, ?)';
+const formatDateForMySQL = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return null;
+    return date.toISOString().slice(0, 19).replace('T', ' ');
+};
+
+const updateVideoProgress = async ({ 
+    userId, 
+    videoId, 
+    currentTimestampSeconds, 
+    totalWatchTimeSeconds, 
+    isCompleted,
+    firstOpenedAt,
+    lastWatchedAt,
+    completedAt
+}) => {
+    const query = 'CALL upsert_user_video_progress(?, ?, ?, ?, ?, ?, ?, ?)';
     
     const values = [
         userId, 
         videoId, 
         currentTimestampSeconds || 0, 
         totalWatchTimeSeconds || 0, 
-        isCompleted ? 1 : 0
+        isCompleted ? 1 : 0,
+        formatDateForMySQL(firstOpenedAt),
+        formatDateForMySQL(lastWatchedAt),
+        formatDateForMySQL(completedAt)
     ];
 
     const [result] = await pool.query(query, values);
-    return result; 
+    
+    // The stored procedure now ends with a SELECT statement, 
+    // so result[0] contains the array of rows from that SELECT
+    if (result && result[0] && result[0].length > 0) {
+        return result[0][0]; 
+    }
+    return null;
 };
 
 module.exports = { updateVideoProgress };
