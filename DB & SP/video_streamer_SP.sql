@@ -60,11 +60,30 @@ BEGIN
     SELECT 
         u.name AS patient_name,
         u.note AS ward,
-        (SELECT MAX(created_at) FROM user_activity_logs ual WHERE ual.user_id = u.id AND ual.action = 'LOGIN') AS last_login,
+        
+        -- Get the most recent watch time
+        (SELECT MAX(last_watched_at) FROM user_video_progress uvp WHERE uvp.user_id = u.id) AS last_login,
+        
+        -- PRE WATCHED: Count watched pre-op videos
+        (SELECT COUNT(*) 
+         FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = u.id AND uvp.is_completed = true AND v.category = 'pre-op') AS pre_watched,
+         
+        -- POST WATCHED: Count watched post-op videos
+        (SELECT COUNT(*) 
+         FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = u.id AND uvp.is_completed = true AND v.category = 'post-op') AS post_watched,
+
+        -- Keep total completed and assigned for other calculations if needed
         (SELECT COUNT(*) FROM user_video_progress uvp WHERE uvp.user_id = u.id AND uvp.is_completed = true) AS completed_videos,
         (SELECT COUNT(*) FROM user_video_assignments uva WHERE uva.user_id = u.id) AS assigned_videos
+        
     FROM users u
-    -- We sort by last login to show the most recently active users first
+    -- Filter out users who have never watched anything
+    WHERE (SELECT MAX(last_watched_at) FROM user_video_progress uvp WHERE uvp.user_id = u.id) IS NOT NULL
+    
     ORDER BY last_login DESC
     LIMIT 5;
 END$$
@@ -228,38 +247,46 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_reminder`(
+    IN p_user_id INT
+)
+BEGIN
+    SELECT 
+        id,
+        user_id,
+        TIME_FORMAT(reminder_time, '%H:%i:%s') AS reminder_time,
+        is_enabled,
+        created_at,
+        updated_at
+    FROM user_reminders
+    WHERE user_id = p_user_id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_video_history`(
     IN p_user_id INT,
     IN p_category VARCHAR(50)
 )
 BEGIN
-    DECLARE v_user_language_id INT;
-
-    -- 1. Grab the language_id of the user
-    SELECT language_id INTO v_user_language_id 
-    FROM users 
-    WHERE id = p_user_id;
-
-    -- 2. Fetch all matching videos and left join with user's progress
     SELECT 
         v.id AS video_id,
         v.title,
         v.description,
         v.category,
         v.thumbnail_url,
-        IFNULL(p.is_completed, 0) AS is_completed,
-        IFNULL(p.current_timestamp_seconds, 0) AS current_timestamp_seconds,
-        IFNULL(p.total_watch_time_seconds, 0) AS total_watch_time_seconds,
+        p.is_completed,
+        p.current_timestamp_seconds,
+        p.total_watch_time_seconds,
+        p.first_opened_at,
         p.last_watched_at,
         p.completed_at
     FROM videos v
-    LEFT JOIN user_video_progress p 
+    INNER JOIN user_video_progress p 
         ON v.id = p.video_id AND p.user_id = p_user_id
-    WHERE v.language_id = v_user_language_id
-      AND (p_category IS NULL OR p_category = '' OR v.category = p_category)
+    WHERE (p_category IS NULL OR p_category = '' OR v.category = p_category)
     ORDER BY 
-        p.last_watched_at DESC, -- Recently watched videos first
-        v.created_at DESC;      -- Then newest assigned videos
+        p.last_watched_at DESC; 
 END$$
 DELIMITER ;
 
@@ -335,12 +362,47 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `save_user_reminder`(
+    IN p_user_id INT,
+    IN p_reminder_time TIME,
+    IN p_is_enabled TINYINT
+)
+BEGIN
+    -- Upsert reminder: Defaults is_enabled to 0 if not provided (NULL)
+    INSERT INTO user_reminders (user_id, reminder_time, is_enabled)
+    VALUES (
+        p_user_id,
+        p_reminder_time,
+        COALESCE(p_is_enabled, 0)
+    )
+    ON DUPLICATE KEY UPDATE
+        reminder_time = VALUES(reminder_time),
+        is_enabled = COALESCE(p_is_enabled, is_enabled),
+        updated_at = CURRENT_TIMESTAMP;
+
+    -- Return the updated reminder record
+    SELECT 
+        id,
+        user_id,
+        TIME_FORMAT(reminder_time, '%H:%i:%s') AS reminder_time,
+        is_enabled,
+        created_at,
+        updated_at
+    FROM user_reminders
+    WHERE user_id = p_user_id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `upsert_user_video_progress`(
     IN p_user_id INT,
     IN p_video_id INT,
     IN p_current_timestamp_seconds INT,
     IN p_total_watch_time_seconds INT,
-    IN p_is_completed TINYINT(1)
+    IN p_is_completed TINYINT(1),
+    IN p_first_opened_at TIMESTAMP,
+    IN p_last_watched_at TIMESTAMP,
+    IN p_completed_at TIMESTAMP
 )
 BEGIN
     INSERT INTO `user_video_progress` (
@@ -358,15 +420,25 @@ BEGIN
         p_current_timestamp_seconds, 
         p_total_watch_time_seconds, 
         p_is_completed, 
-        CURRENT_TIMESTAMP, 
-        IF(p_is_completed = 1, CURRENT_TIMESTAMP, NULL)
+        IFNULL(p_last_watched_at, CURRENT_TIMESTAMP), 
+        IFNULL(p_completed_at, IF(p_is_completed = 1, CURRENT_TIMESTAMP, NULL))
     )
     ON DUPLICATE KEY UPDATE
         `current_timestamp_seconds` = VALUES(`current_timestamp_seconds`),
         `total_watch_time_seconds` = VALUES(`total_watch_time_seconds`),
         `is_completed` = IF(`is_completed` = 1, 1, VALUES(`is_completed`)),
-        `last_watched_at` = CURRENT_TIMESTAMP,
-        `completed_at` = IF(`is_completed` = 0 AND VALUES(`is_completed`) = 1, CURRENT_TIMESTAMP, `completed_at`);
+        `last_watched_at` = IFNULL(p_last_watched_at, CURRENT_TIMESTAMP),
+        `completed_at` = IFNULL(p_completed_at, IF(`is_completed` = 0 AND VALUES(`is_completed`) = 1, CURRENT_TIMESTAMP, `completed_at`));
+
+    -- Select the updated row so Node.js can send it back in the JSON response
+    SELECT 
+        first_opened_at, 
+        last_watched_at, 
+        completed_at,
+        is_completed,
+        current_timestamp_seconds
+    FROM user_video_progress
+    WHERE user_id = p_user_id AND video_id = p_video_id;
 END$$
 DELIMITER ;
 
