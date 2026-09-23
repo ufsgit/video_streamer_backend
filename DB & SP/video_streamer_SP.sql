@@ -59,8 +59,39 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `dash_get_activity_logs`()
 BEGIN
     SELECT 
         u.name AS patient_name,
-        u.note AS ward,
         
+        -- Video Title of the user's most recently watched video
+        (SELECT v.title 
+         FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = u.id 
+         ORDER BY uvp.last_watched_at DESC 
+         LIMIT 1) AS video_title,
+        
+        -- Progress details directly from user_video_progress
+        (SELECT uvp.current_timestamp_seconds 
+         FROM user_video_progress uvp 
+         WHERE uvp.user_id = u.id 
+         ORDER BY uvp.last_watched_at DESC 
+         LIMIT 1) AS current_timestamp_seconds,
+
+        (SELECT uvp.total_video_duration 
+         FROM user_video_progress uvp 
+         WHERE uvp.user_id = u.id 
+         ORDER BY uvp.last_watched_at DESC 
+         LIMIT 1) AS total_video_duration,
+
+        (SELECT 
+            CASE 
+                WHEN uvp.is_completed = 1 THEN 100
+                WHEN uvp.total_video_duration > 0 THEN ROUND((uvp.current_timestamp_seconds / uvp.total_video_duration) * 100)
+                ELSE 0 
+            END
+         FROM user_video_progress uvp 
+         WHERE uvp.user_id = u.id 
+         ORDER BY uvp.last_watched_at DESC 
+         LIMIT 1) AS video_progress_percent,
+
         -- Get the most recent watch time
         (SELECT MAX(last_watched_at) FROM user_video_progress uvp WHERE uvp.user_id = u.id) AS last_login,
         
@@ -76,9 +107,9 @@ BEGIN
          JOIN videos v ON uvp.video_id = v.id 
          WHERE uvp.user_id = u.id AND uvp.is_completed = true AND v.category = 'post-op') AS post_watched,
 
-        -- Keep total completed and assigned for other calculations if needed
+        -- Total completed and assigned counts
         (SELECT COUNT(*) FROM user_video_progress uvp WHERE uvp.user_id = u.id AND uvp.is_completed = true) AS completed_videos,
-        (SELECT COUNT(*) FROM user_video_assignments uva WHERE uva.user_id = u.id) AS assigned_videos
+        (SELECT COUNT(*) FROM videos v WHERE u.language_id IS NULL OR v.language_id = u.language_id) AS assigned_videos
         
     FROM users u
     -- Filter out users who have never watched anything
@@ -264,6 +295,26 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_video_progress_by_id`(
+    IN p_user_id INT,
+    IN p_video_id INT
+)
+BEGIN
+    SELECT 
+        user_id,
+        video_id,
+        COALESCE(current_timestamp_seconds, 0) AS current_timestamp_seconds,
+        COALESCE(total_video_duration, 0) AS total_video_duration,
+        COALESCE(is_completed, 0) AS is_completed,
+        first_opened_at,
+        last_watched_at,
+        completed_at
+    FROM user_video_progress
+    WHERE user_id = p_user_id AND video_id = p_video_id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_video_history`(
     IN p_user_id INT,
     IN p_category VARCHAR(50)
@@ -277,7 +328,7 @@ BEGIN
         v.thumbnail_url,
         p.is_completed,
         p.current_timestamp_seconds,
-        p.total_watch_time_seconds,
+        p.total_video_duration,
         p.first_opened_at,
         p.last_watched_at,
         p.completed_at
@@ -352,9 +403,14 @@ BEGIN
         name, 
         photo_url, 
         email, 
+        language_id,
+        language_name,
         status,
         doctor_id,
-        doctor_name
+        doctor_name,
+        current_streak,
+        DATE_FORMAT(last_active_date, '%Y-%m-%d') AS last_active_date,
+        total_time_on_platform_seconds
     FROM users 
     WHERE username = p_username 
     LIMIT 1;
@@ -398,7 +454,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `upsert_user_video_progress`(
     IN p_user_id INT,
     IN p_video_id INT,
     IN p_current_timestamp_seconds INT,
-    IN p_total_watch_time_seconds INT,
+    IN p_total_video_duration INT,
     IN p_is_completed TINYINT(1),
     IN p_first_opened_at TIMESTAMP,
     IN p_last_watched_at TIMESTAMP,
@@ -409,7 +465,7 @@ BEGIN
         `user_id`, 
         `video_id`, 
         `current_timestamp_seconds`, 
-        `total_watch_time_seconds`, 
+        `total_video_duration`, 
         `is_completed`, 
         `last_watched_at`, 
         `completed_at`
@@ -418,14 +474,14 @@ BEGIN
         p_user_id, 
         p_video_id, 
         p_current_timestamp_seconds, 
-        p_total_watch_time_seconds, 
+        p_total_video_duration, 
         p_is_completed, 
         IFNULL(p_last_watched_at, CURRENT_TIMESTAMP), 
         IFNULL(p_completed_at, IF(p_is_completed = 1, CURRENT_TIMESTAMP, NULL))
     )
     ON DUPLICATE KEY UPDATE
         `current_timestamp_seconds` = VALUES(`current_timestamp_seconds`),
-        `total_watch_time_seconds` = VALUES(`total_watch_time_seconds`),
+        `total_video_duration` = VALUES(`total_video_duration`),
         `is_completed` = IF(`is_completed` = 1, 1, VALUES(`is_completed`)),
         `last_watched_at` = IFNULL(p_last_watched_at, CURRENT_TIMESTAMP),
         `completed_at` = IFNULL(p_completed_at, IF(`is_completed` = 0 AND VALUES(`is_completed`) = 1, CURRENT_TIMESTAMP, `completed_at`));
@@ -436,7 +492,8 @@ BEGIN
         last_watched_at, 
         completed_at,
         is_completed,
-        current_timestamp_seconds
+        current_timestamp_seconds,
+        total_video_duration
     FROM user_video_progress
     WHERE user_id = p_user_id AND video_id = p_video_id;
 END$$
@@ -697,3 +754,89 @@ AND (p_search IS NULL OR title LIKE CONCAT(p_search, '%'))
 ORDER BY created_at DESC LIMIT p_limit OFFSET p_offset; 
 END$$
 DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_user_activity`(
+    IN p_user_id INT,
+    IN p_time_spent_seconds INT,
+    IN p_total_time_seconds INT
+)
+BEGIN
+    DECLARE v_last_active DATE;
+    DECLARE v_current_streak INT DEFAULT 0;
+    DECLARE v_new_streak INT DEFAULT 1;
+
+    SELECT last_active_date, COALESCE(current_streak, 0)
+    INTO v_last_active, v_current_streak
+    FROM users 
+    WHERE id = p_user_id;
+
+    IF v_last_active IS NULL THEN
+        SET v_new_streak = 1;
+    ELSEIF v_last_active = CURRENT_DATE() THEN
+        SET v_new_streak = GREATEST(v_current_streak, 1);
+    ELSEIF v_last_active = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) THEN
+        SET v_new_streak = v_current_streak + 1;
+    ELSE
+        -- Inactive for more than 1 day (> 24 hours / missed a day): streak restarts at 1
+        SET v_new_streak = 1;
+    END IF;
+
+    UPDATE users
+    SET 
+        last_active_date = CURRENT_DATE(),
+        current_streak = v_new_streak,
+        total_time_on_platform_seconds = CASE 
+            WHEN p_total_time_seconds IS NOT NULL THEN p_total_time_seconds
+            ELSE COALESCE(total_time_on_platform_seconds, 0) + COALESCE(p_time_spent_seconds, 0)
+        END,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = p_user_id;
+
+    SELECT 
+        id,
+        username,
+        name,
+        current_streak,
+        DATE_FORMAT(last_active_date, '%Y-%m-%d') AS last_active_date,
+        total_time_on_platform_seconds
+    FROM users
+    WHERE id = p_user_id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_activity`(IN p_user_id INT)
+BEGIN
+    UPDATE users
+    SET current_streak = 0
+    WHERE id = p_user_id
+      AND last_active_date IS NOT NULL 
+      AND last_active_date < DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+      AND current_streak > 0;
+
+    SELECT 
+        id,
+        username,
+        name,
+        current_streak,
+        DATE_FORMAT(last_active_date, '%Y-%m-%d') AS last_active_date,
+        total_time_on_platform_seconds
+    FROM users
+    WHERE id = p_user_id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `refresh_inactive_user_streaks`()
+BEGIN
+    UPDATE users
+    SET current_streak = 0
+    WHERE last_active_date IS NOT NULL 
+      AND last_active_date < DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+      AND current_streak > 0;
+
+    SELECT ROW_COUNT() AS affected_users;
+END$$
+DELIMITER ;
+

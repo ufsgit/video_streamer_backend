@@ -11,6 +11,7 @@ const updateVideoProgress = async ({
     userId, 
     videoId, 
     currentTimestampSeconds, 
+    totalVideoDuration,
     totalWatchTimeSeconds, 
     isCompleted,
     firstOpenedAt,
@@ -19,11 +20,13 @@ const updateVideoProgress = async ({
 }) => {
     const query = 'CALL upsert_user_video_progress(?, ?, ?, ?, ?, ?, ?, ?)';
     
+    const finalDuration = totalVideoDuration ?? totalWatchTimeSeconds ?? 0;
+
     const values = [
         userId, 
         videoId, 
         currentTimestampSeconds || 0, 
-        totalWatchTimeSeconds || 0, 
+        finalDuration, 
         isCompleted ? 1 : 0,
         formatDateForMySQL(firstOpenedAt),
         formatDateForMySQL(lastWatchedAt),

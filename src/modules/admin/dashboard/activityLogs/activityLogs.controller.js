@@ -6,18 +6,25 @@ const getActivityLogs = async (req, res) => {
         
         // Map over the results to format them exactly how the frontend needs them
         const formattedLogs = logs.map(log => {
-            const progressPercent = log.assigned_videos > 0 
+            const videoPercent = Number(log.video_progress_percent) || 0;
+            const overallPercent = log.assigned_videos > 0 
                 ? Math.round((log.completed_videos / log.assigned_videos) * 100) 
                 : 0;
 
             return {
                 patient_name: log.patient_name,
-                ward: log.ward,
+                video_title: log.video_title,
+                ward: log.video_title,
                 last_login: log.last_login, 
+                current_timestamp_seconds: log.current_timestamp_seconds || 0,
+                total_video_duration: log.total_video_duration || 0,
+                video_progress_percent: videoPercent,
                 pre_watched: `${log.pre_watched} videos`,
                 post_watched: `${log.post_watched} videos`,
-                progress: `${progressPercent}% Complete`,
-                raw_progress_percent: progressPercent
+                progress: `${videoPercent}% Complete`,
+                raw_progress_percent: videoPercent,
+                overall_progress: `${overallPercent}% Complete`,
+                raw_overall_progress_percent: overallPercent
             };
         });
 

@@ -1,4 +1,5 @@
 const authService = require('./auth.service');
+const activityService = require('../user/activity/activity.service');
 const { comparePassword } = require('../../utils/hash.util');
 const { generateToken } = require('../../utils/jwt.util');
 
@@ -79,6 +80,14 @@ const loginUser = async (req, res) => {
 
         const token = generateToken(user.id, 'user', user.name);
 
+        // Update user activity, streak, and last active date on login
+        let activity = null;
+        try {
+            activity = await activityService.updateUserActivity(user.id, { timeSpentSeconds: 0 });
+        } catch (activityError) {
+            console.error('Error updating activity on login:', activityError);
+        }
+
         res.status(200).json({
             success: true,
             data: {
@@ -86,6 +95,11 @@ const loginUser = async (req, res) => {
                 username: user.username,
                 name: user.name,
                 photo_url: user.photo_url,
+                language_id: user.language_id,
+                language_name: user.language_name,
+                current_streak: activity ? activity.current_streak : (user.current_streak || 0),
+                last_active_date: activity ? activity.last_active_date : user.last_active_date,
+                total_time_on_platform_seconds: activity ? activity.total_time_on_platform_seconds : (user.total_time_on_platform_seconds || 0),
                 role: 'user',
                 token
             }

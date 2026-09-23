@@ -6,6 +6,7 @@ const updateProgress = async (req, res) => {
         const { 
             video_id, 
             current_timestamp_seconds, 
+            total_video_duration,
             total_watch_time_seconds, 
             is_completed,
             first_opened_at,
@@ -17,11 +18,13 @@ const updateProgress = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Video ID is required.' });
         }
 
+        const totalDuration = total_video_duration ?? total_watch_time_seconds ?? 0;
+
         const progressData = await updateProgressService.updateVideoProgress({
             userId,
             videoId: video_id,
             currentTimestampSeconds: current_timestamp_seconds,
-            totalWatchTimeSeconds: total_watch_time_seconds,
+            totalVideoDuration: totalDuration,
             isCompleted: is_completed,
             firstOpenedAt: first_opened_at,
             lastWatchedAt: last_watched_at,

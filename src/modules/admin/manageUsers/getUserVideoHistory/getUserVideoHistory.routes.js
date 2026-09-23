@@ -52,7 +52,7 @@ const { protect, adminOnly } = require('../../../../middlewares/auth.middleware'
  *                         format: date-time
  *                       current_timestamp_seconds:
  *                         type: integer
- *                       total_watch_time_seconds:
+ *                       total_video_duration:
  *                         type: integer
  *                       is_completed:
  *                         type: integer
