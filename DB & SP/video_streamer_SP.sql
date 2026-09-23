@@ -68,19 +68,21 @@ BEGIN
          ORDER BY uvp.last_watched_at DESC 
          LIMIT 1) AS video_title,
         
-        -- Progress details directly from user_video_progress
+        -- Current watch timestamp in seconds
         (SELECT uvp.current_timestamp_seconds 
          FROM user_video_progress uvp 
          WHERE uvp.user_id = u.id 
          ORDER BY uvp.last_watched_at DESC 
          LIMIT 1) AS current_timestamp_seconds,
 
+        -- Total video duration in seconds
         (SELECT uvp.total_video_duration 
          FROM user_video_progress uvp 
          WHERE uvp.user_id = u.id 
          ORDER BY uvp.last_watched_at DESC 
          LIMIT 1) AS total_video_duration,
 
+        -- Progress percentage of this video
         (SELECT 
             CASE 
                 WHEN uvp.is_completed = 1 THEN 100
@@ -92,7 +94,7 @@ BEGIN
          ORDER BY uvp.last_watched_at DESC 
          LIMIT 1) AS video_progress_percent,
 
-        -- Get the most recent watch time
+        -- Most recent watch time
         (SELECT MAX(last_watched_at) FROM user_video_progress uvp WHERE uvp.user_id = u.id) AS last_login,
         
         -- PRE WATCHED: Count watched pre-op videos
@@ -107,12 +109,12 @@ BEGIN
          JOIN videos v ON uvp.video_id = v.id 
          WHERE uvp.user_id = u.id AND uvp.is_completed = true AND v.category = 'post-op') AS post_watched,
 
-        -- Total completed and assigned counts
+        -- Total completed videos
         (SELECT COUNT(*) FROM user_video_progress uvp WHERE uvp.user_id = u.id AND uvp.is_completed = true) AS completed_videos,
+        -- Total assigned videos matching user language
         (SELECT COUNT(*) FROM videos v WHERE u.language_id IS NULL OR v.language_id = u.language_id) AS assigned_videos
         
     FROM users u
-    -- Filter out users who have never watched anything
     WHERE (SELECT MAX(last_watched_at) FROM user_video_progress uvp WHERE uvp.user_id = u.id) IS NOT NULL
     
     ORDER BY last_login DESC
@@ -209,6 +211,28 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_activity`(IN p_user_id INT)
+BEGIN
+                UPDATE users
+                SET current_streak = 0
+                WHERE id = p_user_id
+                  AND last_active_date IS NOT NULL 
+                  AND last_active_date < DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+                  AND current_streak > 0;
+
+                SELECT 
+                    id,
+                    username,
+                    name,
+                    current_streak,
+                    DATE_FORMAT(last_active_date, '%Y-%m-%d') AS last_active_date,
+                    total_time_on_platform_seconds
+                FROM users
+                WHERE id = p_user_id;
+            END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_engagement_progress`(
     IN p_user_id INT,
     IN p_category VARCHAR(50) -- Pass 'pre-op', 'post-op', or NULL for all
@@ -295,26 +319,6 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_video_progress_by_id`(
-    IN p_user_id INT,
-    IN p_video_id INT
-)
-BEGIN
-    SELECT 
-        user_id,
-        video_id,
-        COALESCE(current_timestamp_seconds, 0) AS current_timestamp_seconds,
-        COALESCE(total_video_duration, 0) AS total_video_duration,
-        COALESCE(is_completed, 0) AS is_completed,
-        first_opened_at,
-        last_watched_at,
-        completed_at
-    FROM user_video_progress
-    WHERE user_id = p_user_id AND video_id = p_video_id;
-END$$
-DELIMITER ;
-
-DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_video_history`(
     IN p_user_id INT,
     IN p_category VARCHAR(50)
@@ -338,6 +342,26 @@ BEGIN
     WHERE (p_category IS NULL OR p_category = '' OR v.category = p_category)
     ORDER BY 
         p.last_watched_at DESC; 
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_video_progress_by_id`(
+    IN p_user_id INT,
+    IN p_video_id INT
+)
+BEGIN
+    SELECT 
+        user_id,
+        video_id,
+        COALESCE(current_timestamp_seconds, 0) AS current_timestamp_seconds,
+        COALESCE(total_video_duration, 0) AS total_video_duration,
+        COALESCE(is_completed, 0) AS is_completed,
+        first_opened_at,
+        last_watched_at,
+        completed_at
+    FROM user_video_progress
+    WHERE user_id = p_user_id AND video_id = p_video_id;
 END$$
 DELIMITER ;
 
@@ -396,25 +420,38 @@ DELIMITER ;
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `login_user`(IN p_username VARCHAR(50))
 BEGIN
-    SELECT 
-        id, 
-        username, 
-        password_hash, 
-        name, 
-        photo_url, 
-        email, 
-        language_id,
-        language_name,
-        status,
-        doctor_id,
-        doctor_name,
-        current_streak,
-        DATE_FORMAT(last_active_date, '%Y-%m-%d') AS last_active_date,
-        total_time_on_platform_seconds
-    FROM users 
-    WHERE username = p_username 
-    LIMIT 1;
-END$$
+                SELECT 
+                    id, 
+                    username, 
+                    password_hash, 
+                    name, 
+                    photo_url, 
+                    email, 
+                    language_id,
+                    language_name,
+                    status,
+                    doctor_id,
+                    doctor_name,
+                    current_streak,
+                    DATE_FORMAT(last_active_date, '%Y-%m-%d') AS last_active_date,
+                    total_time_on_platform_seconds
+                FROM users 
+                WHERE username = p_username 
+                LIMIT 1;
+            END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `refresh_inactive_user_streaks`()
+BEGIN
+                UPDATE users
+                SET current_streak = 0
+                WHERE last_active_date IS NOT NULL 
+                  AND last_active_date < DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+                  AND current_streak > 0;
+
+                SELECT ROW_COUNT() AS affected_users;
+            END$$
 DELIMITER ;
 
 DELIMITER $$
@@ -447,6 +484,55 @@ BEGIN
     FROM user_reminders
     WHERE user_id = p_user_id;
 END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_user_activity`(
+                IN p_user_id INT,
+                IN p_time_spent_seconds INT,
+                IN p_total_time_seconds INT
+            )
+BEGIN
+                DECLARE v_last_active DATE;
+                DECLARE v_current_streak INT DEFAULT 0;
+                DECLARE v_new_streak INT DEFAULT 1;
+
+                SELECT last_active_date, COALESCE(current_streak, 0)
+                INTO v_last_active, v_current_streak
+                FROM users 
+                WHERE id = p_user_id;
+
+                IF v_last_active IS NULL THEN
+                    SET v_new_streak = 1;
+                ELSEIF v_last_active = CURRENT_DATE() THEN
+                    SET v_new_streak = GREATEST(v_current_streak, 1);
+                ELSEIF v_last_active = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) THEN
+                    SET v_new_streak = v_current_streak + 1;
+                ELSE
+                    SET v_new_streak = 1;
+                END IF;
+
+                UPDATE users
+                SET 
+                    last_active_date = CURRENT_DATE(),
+                    current_streak = v_new_streak,
+                    total_time_on_platform_seconds = CASE 
+                        WHEN p_total_time_seconds IS NOT NULL THEN p_total_time_seconds
+                        ELSE COALESCE(total_time_on_platform_seconds, 0) + COALESCE(p_time_spent_seconds, 0)
+                    END,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = p_user_id;
+
+                SELECT 
+                    id,
+                    username,
+                    name,
+                    current_streak,
+                    DATE_FORMAT(last_active_date, '%Y-%m-%d') AS last_active_date,
+                    total_time_on_platform_seconds
+                FROM users
+                WHERE id = p_user_id;
+            END$$
 DELIMITER ;
 
 DELIMITER $$
@@ -486,7 +572,7 @@ BEGIN
         `last_watched_at` = IFNULL(p_last_watched_at, CURRENT_TIMESTAMP),
         `completed_at` = IFNULL(p_completed_at, IF(`is_completed` = 0 AND VALUES(`is_completed`) = 1, CURRENT_TIMESTAMP, `completed_at`));
 
-    -- Select the updated row so Node.js can send it back in the JSON response
+    -- Select the updated row so Node.js can send it back in the response
     SELECT 
         first_opened_at, 
         last_watched_at, 
@@ -579,15 +665,45 @@ DELIMITER ;
 
 DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `user_getbyid`(
-                IN p_user_id INT,
-                IN p_doctor_id INT
-            )
+    IN p_user_id INT,
+    IN p_doctor_id INT
+)
 BEGIN
-                SELECT 
-                    id, username, password_hash, name, photo_url, DATE_FORMAT(dob, '%Y-%m-%d') AS dob, sex, age, email, phone_number, note, language_id, language_name, doctor_id, doctor_name, language_id, language_name, current_streak, last_active_date, total_time_on_platform_seconds, registered_date, status, updated_at
-                FROM users 
-                WHERE id = p_user_id AND doctor_id = p_doctor_id;
-            END$$
+    SELECT 
+        u.id, 
+        u.username, 
+        u.name, 
+        u.photo_url, 
+        DATE_FORMAT(u.dob, '%Y-%m-%d') AS dob, 
+        u.sex, 
+        u.age, 
+        u.email, 
+        u.phone_number, 
+        u.note, 
+        u.language_id, 
+        u.language_name, 
+        u.doctor_id, 
+        u.doctor_name, 
+        u.current_streak, 
+        u.last_active_date, 
+        u.total_time_on_platform_seconds, 
+        u.registered_date, 
+        u.status, 
+        u.updated_at,
+        -- Notification details
+        COALESCE(ur.is_enabled, 0) AS is_notification_enabled,
+        CASE 
+            WHEN ur.is_enabled = 1 THEN 'ON'
+            ELSE 'OFF'
+        END AS notification_status,
+        CASE 
+            WHEN ur.is_enabled = 1 THEN TIME_FORMAT(ur.reminder_time, '%H:%i:%s')
+            ELSE NULL 
+        END AS notification_time
+    FROM users u
+    LEFT JOIN user_reminders ur ON ur.user_id = u.id
+    WHERE u.id = p_user_id AND u.doctor_id = p_doctor_id;
+END$$
 DELIMITER ;
 
 DELIMITER $$
@@ -754,89 +870,3 @@ AND (p_search IS NULL OR title LIKE CONCAT(p_search, '%'))
 ORDER BY created_at DESC LIMIT p_limit OFFSET p_offset; 
 END$$
 DELIMITER ;
-
-DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_user_activity`(
-    IN p_user_id INT,
-    IN p_time_spent_seconds INT,
-    IN p_total_time_seconds INT
-)
-BEGIN
-    DECLARE v_last_active DATE;
-    DECLARE v_current_streak INT DEFAULT 0;
-    DECLARE v_new_streak INT DEFAULT 1;
-
-    SELECT last_active_date, COALESCE(current_streak, 0)
-    INTO v_last_active, v_current_streak
-    FROM users 
-    WHERE id = p_user_id;
-
-    IF v_last_active IS NULL THEN
-        SET v_new_streak = 1;
-    ELSEIF v_last_active = CURRENT_DATE() THEN
-        SET v_new_streak = GREATEST(v_current_streak, 1);
-    ELSEIF v_last_active = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY) THEN
-        SET v_new_streak = v_current_streak + 1;
-    ELSE
-        -- Inactive for more than 1 day (> 24 hours / missed a day): streak restarts at 1
-        SET v_new_streak = 1;
-    END IF;
-
-    UPDATE users
-    SET 
-        last_active_date = CURRENT_DATE(),
-        current_streak = v_new_streak,
-        total_time_on_platform_seconds = CASE 
-            WHEN p_total_time_seconds IS NOT NULL THEN p_total_time_seconds
-            ELSE COALESCE(total_time_on_platform_seconds, 0) + COALESCE(p_time_spent_seconds, 0)
-        END,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = p_user_id;
-
-    SELECT 
-        id,
-        username,
-        name,
-        current_streak,
-        DATE_FORMAT(last_active_date, '%Y-%m-%d') AS last_active_date,
-        total_time_on_platform_seconds
-    FROM users
-    WHERE id = p_user_id;
-END$$
-DELIMITER ;
-
-DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_activity`(IN p_user_id INT)
-BEGIN
-    UPDATE users
-    SET current_streak = 0
-    WHERE id = p_user_id
-      AND last_active_date IS NOT NULL 
-      AND last_active_date < DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
-      AND current_streak > 0;
-
-    SELECT 
-        id,
-        username,
-        name,
-        current_streak,
-        DATE_FORMAT(last_active_date, '%Y-%m-%d') AS last_active_date,
-        total_time_on_platform_seconds
-    FROM users
-    WHERE id = p_user_id;
-END$$
-DELIMITER ;
-
-DELIMITER $$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `refresh_inactive_user_streaks`()
-BEGIN
-    UPDATE users
-    SET current_streak = 0
-    WHERE last_active_date IS NOT NULL 
-      AND last_active_date < DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
-      AND current_streak > 0;
-
-    SELECT ROW_COUNT() AS affected_users;
-END$$
-DELIMITER ;
-
