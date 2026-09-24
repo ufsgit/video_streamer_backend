@@ -57,6 +57,8 @@ const editUserRoutes = require('./modules/admin/manageUsers/editUser/editUser.ro
 const deleteUserRoutes = require('./modules/admin/manageUsers/deleteUser/deleteUser.routes');
 const getUserProgressRoutes = require('./modules/admin/manageUsers/getUserProgress/getUserProgress.routes');
 const getUserVideoHistoryRoutes = require('./modules/admin/manageUsers/getUserVideoHistory/getUserVideoHistory.routes');
+const exportPatientReportRoutes = require('./modules/admin/manageUsers/exportPatientReport/exportPatientReport.routes');
+const getStageComparisonRoutes = require('./modules/admin/manageUsers/getStageComparison/getStageComparison.routes');
 
 // Mount routes
 app.use('/api/admin/users/create', createUserRoutes);
@@ -65,6 +67,8 @@ app.use('/api/admin/users/get', getUserByIdRoutes);
 app.use('/api/admin/users/engagement', getUserEngagementRoutes);
 app.use('/api/admin/users/progress', getUserProgressRoutes);
 app.use('/api/admin/users/history', getUserVideoHistoryRoutes);
+app.use('/api/admin/users/stage-comparison', getStageComparisonRoutes);
+app.use('/api/admin/users/report', exportPatientReportRoutes);
 app.use('/api/admin/users/edit', editUserRoutes);
 app.use('/api/admin/users/delete', deleteUserRoutes);
 

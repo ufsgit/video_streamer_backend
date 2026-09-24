@@ -302,6 +302,50 @@ END$$
 DELIMITER ;
 
 DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_prompted_watch_stats`(
+    IN p_user_id INT
+)
+BEGIN
+    DECLARE v_has_logs INT DEFAULT 0;
+
+    -- Check if user has entries in user_notification_watch_logs
+    SELECT COUNT(*) INTO v_has_logs 
+    FROM user_notification_watch_logs 
+    WHERE user_id = p_user_id;
+
+    IF v_has_logs > 0 THEN
+        -- Exact numeric counts from user_notification_watch_logs
+        SELECT 
+            p_user_id AS user_id,
+            COUNT(*) AS total_watch_sessions,
+            -- Prompted Watch as a direct NUMBER (count of views prompted by reminder)
+            SUM(CASE WHEN is_prompted = 1 THEN 1 ELSE 0 END) AS prompted_watch_number,
+            -- Self-Initiated as a direct NUMBER
+            SUM(CASE WHEN is_prompted = 0 THEN 1 ELSE 0 END) AS self_initiated_views,
+            -- Percentage ratio
+            ROUND((SUM(CASE WHEN is_prompted = 1 THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) AS prompted_watch_ratio_pct,
+            -- Average patient reaction time after notification
+            COALESCE(ROUND(AVG(CASE WHEN is_prompted = 1 THEN difference_seconds ELSE NULL END)), 0) AS avg_response_time_seconds,
+            COALESCE(ROUND(AVG(CASE WHEN is_prompted = 1 THEN difference_seconds ELSE NULL END) / 60, 1), 0.0) AS avg_response_time_minutes
+        FROM user_notification_watch_logs
+        WHERE user_id = p_user_id;
+    ELSE
+        -- Fallback to user_video_progress if no logs recorded yet
+        SELECT 
+            p_user_id AS user_id,
+            COUNT(*) AS total_watch_sessions,
+            0 AS prompted_watch_number,
+            COUNT(*) AS self_initiated_views,
+            0.00 AS prompted_watch_ratio_pct,
+            0 AS avg_response_time_seconds,
+            0.0 AS avg_response_time_minutes
+        FROM user_video_progress
+        WHERE user_id = p_user_id AND (current_timestamp_seconds > 0 OR last_watched_at IS NOT NULL);
+    END IF;
+END$$
+DELIMITER ;
+
+DELIMITER $$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_reminder`(
     IN p_user_id INT
 )
@@ -315,6 +359,128 @@ BEGIN
         updated_at
     FROM user_reminders
     WHERE user_id = p_user_id;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_user_stage_comparison`(
+    IN p_user_id INT
+)
+BEGIN
+    DECLARE v_user_language_id INT;
+    DECLARE v_patient_name VARCHAR(100);
+    DECLARE v_language_name VARCHAR(100);
+
+    -- 1. Grab user language and name
+    SELECT 
+        language_id, name, language_name 
+    INTO 
+        v_user_language_id, v_patient_name, v_language_name
+    FROM users 
+    WHERE id = p_user_id;
+
+    -- 2. Execute and return complete comparison metrics
+    SELECT 
+        p_user_id AS user_id,
+        v_patient_name AS patient_name,
+        v_user_language_id AS language_id,
+        v_language_name AS language_name,
+
+        -- ================= PRE-OP METRICS =================
+        -- Total assigned Pre-Op videos
+        (SELECT COUNT(*) FROM videos v 
+         WHERE v.category = 'pre-op' 
+           AND (v_user_language_id IS NULL OR v.language_id = v_user_language_id)
+        ) AS pre_op_total_videos,
+
+        -- Completed Pre-Op videos
+        (SELECT COUNT(*) FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = p_user_id 
+           AND v.category = 'pre-op' 
+           AND uvp.is_completed = 1
+        ) AS pre_op_completed_videos,
+
+        -- In-Progress Pre-Op videos
+        (SELECT COUNT(*) FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = p_user_id 
+           AND v.category = 'pre-op' 
+           AND (uvp.is_completed = 0 OR uvp.is_completed IS NULL) 
+           AND uvp.current_timestamp_seconds > 0
+        ) AS pre_op_in_progress_videos,
+
+        -- Total seconds watched across Pre-Op videos
+        (SELECT COALESCE(SUM(uvp.current_timestamp_seconds), 0) 
+         FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = p_user_id 
+           AND v.category = 'pre-op'
+        ) AS pre_op_watched_seconds,
+
+        -- Total video duration of Pre-Op videos
+        (SELECT COALESCE(
+            NULLIF(
+                SUM(GREATEST(COALESCE(NULLIF(v.total_duration_seconds, 0), 0), COALESCE(uvp.total_video_duration, 0))), 
+                0
+            ),
+            (SELECT SUM(COALESCE(NULLIF(v2.total_duration_seconds, 0), (SELECT uvp2.total_video_duration FROM user_video_progress uvp2 WHERE uvp2.video_id = v2.id AND uvp2.total_video_duration > 0 LIMIT 1), 0)) 
+             FROM videos v2 WHERE v2.category = 'pre-op' AND (v_user_language_id IS NULL OR v2.language_id = v_user_language_id)),
+            0
+         )
+         FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = p_user_id 
+           AND v.category = 'pre-op'
+        ) AS pre_op_total_duration_seconds,
+
+        -- ================= POST-OP METRICS =================
+        -- Total assigned Post-Op videos
+        (SELECT COUNT(*) FROM videos v 
+         WHERE v.category = 'post-op' 
+           AND (v_user_language_id IS NULL OR v.language_id = v_user_language_id)
+        ) AS post_op_total_videos,
+
+        -- Completed Post-Op videos
+        (SELECT COUNT(*) FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = p_user_id 
+           AND v.category = 'post-op' 
+           AND uvp.is_completed = 1
+        ) AS post_op_completed_videos,
+
+        -- In-Progress Post-Op videos
+        (SELECT COUNT(*) FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = p_user_id 
+           AND v.category = 'post-op' 
+           AND (uvp.is_completed = 0 OR uvp.is_completed IS NULL) 
+           AND uvp.current_timestamp_seconds > 0
+        ) AS post_op_in_progress_videos,
+
+        -- Total seconds watched across Post-Op videos
+        (SELECT COALESCE(SUM(uvp.current_timestamp_seconds), 0) 
+         FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = p_user_id 
+           AND v.category = 'post-op'
+        ) AS post_op_watched_seconds,
+
+        -- Total video duration of Post-Op videos
+        (SELECT COALESCE(
+            NULLIF(
+                SUM(GREATEST(COALESCE(NULLIF(v.total_duration_seconds, 0), 0), COALESCE(uvp.total_video_duration, 0))), 
+                0
+            ),
+            (SELECT SUM(COALESCE(NULLIF(v2.total_duration_seconds, 0), (SELECT uvp2.total_video_duration FROM user_video_progress uvp2 WHERE uvp2.video_id = v2.id AND uvp2.total_video_duration > 0 LIMIT 1), 0)) 
+             FROM videos v2 WHERE v2.category = 'post-op' AND (v_user_language_id IS NULL OR v2.language_id = v_user_language_id)),
+            0
+         )
+         FROM user_video_progress uvp 
+         JOIN videos v ON uvp.video_id = v.id 
+         WHERE uvp.user_id = p_user_id 
+           AND v.category = 'post-op'
+        ) AS post_op_total_duration_seconds;
 END$$
 DELIMITER ;
 
@@ -439,6 +605,178 @@ BEGIN
                 WHERE username = p_username 
                 LIMIT 1;
             END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `log_user_notification_view`(
+            IN p_user_id INT,
+            IN p_video_id INT,
+            IN p_current_timestamp_seconds INT,
+            IN p_viewed_at TIMESTAMP,
+            IN p_threshold_seconds INT
+        )
+BEGIN
+            DECLARE v_reminder_time TIME;
+            DECLARE v_is_enabled TINYINT(1) DEFAULT 0;
+            DECLARE v_view_timestamp TIMESTAMP;
+            DECLARE v_scheduled_datetime DATETIME;
+            DECLARE v_diff_seconds INT DEFAULT NULL;
+            DECLARE v_is_prompted TINYINT(1) DEFAULT 0;
+
+            -- Use provided view time or default to CURRENT_TIMESTAMP
+            SET v_view_timestamp = IFNULL(p_viewed_at, CURRENT_TIMESTAMP);
+
+            -- 1. Grab user reminder settings
+            SELECT 
+                reminder_time, is_enabled 
+            INTO 
+                v_reminder_time, v_is_enabled
+            FROM user_reminders 
+            WHERE user_id = p_user_id
+            LIMIT 1;
+
+            -- 2. Evaluate if reminder is active
+            IF v_is_enabled = 1 AND v_reminder_time IS NOT NULL THEN
+                -- Combine view date with user reminder time
+                SET v_scheduled_datetime = TIMESTAMP(DATE(v_view_timestamp), v_reminder_time);
+
+                -- If user watched after midnight but before next reminder, check against previous day's reminder
+                IF v_view_timestamp < v_scheduled_datetime THEN
+                    SET v_scheduled_datetime = DATE_SUB(v_scheduled_datetime, INTERVAL 1 DAY);
+                END IF;
+
+                -- Calculate difference in seconds
+                SET v_diff_seconds = TIMESTAMPDIFF(SECOND, v_scheduled_datetime, v_view_timestamp);
+
+                -- Check if watch occurred within the threshold window
+                IF v_diff_seconds >= 0 AND v_diff_seconds <= p_threshold_seconds THEN
+                    SET v_is_prompted = 1;
+                ELSE
+                    SET v_is_prompted = 0;
+                END IF;
+            ELSE
+                -- No active reminder; all views are self-initiated
+                SET v_reminder_time = '00:00:00';
+                SET v_diff_seconds = -1;
+                SET v_is_prompted = 0;
+            END IF;
+
+            -- 3. Save into the new table
+            INSERT INTO user_reminder_views (
+                user_id,
+                video_id,
+                scheduled_reminder_time,
+                viewed_at,
+                time_difference_seconds,
+                is_prompted,
+                current_timestamp_seconds
+            ) VALUES (
+                p_user_id,
+                p_video_id,
+                v_reminder_time,
+                v_view_timestamp,
+                v_diff_seconds,
+                v_is_prompted,
+                IFNULL(p_current_timestamp_seconds, 0)
+            );
+
+            -- 4. Return the logged record
+            SELECT 
+                LAST_INSERT_ID() AS log_id,
+                p_user_id AS user_id,
+                p_video_id AS video_id,
+                v_reminder_time AS scheduled_reminder_time,
+                v_view_timestamp AS viewed_at,
+                v_diff_seconds AS time_difference_seconds,
+                v_is_prompted AS is_prompted,
+                CASE 
+                    WHEN v_is_prompted = 1 THEN 'Prompted by Reminder'
+                    ELSE 'Self-Initiated'
+                END AS view_type;
+        END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `log_user_watch_session`(
+    IN p_user_id INT,
+    IN p_video_id INT,
+    IN p_viewed_at TIMESTAMP,
+    IN p_threshold_seconds INT
+)
+BEGIN
+    DECLARE v_reminder_time TIME DEFAULT NULL;
+    DECLARE v_is_enabled TINYINT(1) DEFAULT 0;
+    DECLARE v_view_timestamp TIMESTAMP;
+    DECLARE v_notification_datetime DATETIME DEFAULT NULL;
+    DECLARE v_diff_seconds INT DEFAULT NULL;
+    DECLARE v_is_prompted TINYINT(1) DEFAULT 0;
+    DECLARE v_threshold INT;
+
+    SET v_view_timestamp = IFNULL(p_viewed_at, CURRENT_TIMESTAMP);
+    SET v_threshold = IFNULL(p_threshold_seconds, 7200);
+
+    -- 1. Fetch user's reminder settings
+    SELECT reminder_time, is_enabled 
+    INTO v_reminder_time, v_is_enabled
+    FROM user_reminders
+    WHERE user_id = p_user_id
+    LIMIT 1;
+
+    -- 2. If reminders are active, calculate notification datetime & difference
+    IF v_is_enabled = 1 AND v_reminder_time IS NOT NULL THEN
+        IF TIME(v_view_timestamp) < v_reminder_time THEN
+            SET v_notification_datetime = TIMESTAMP(DATE_SUB(DATE(v_view_timestamp), INTERVAL 1 DAY), v_reminder_time);
+        ELSE
+            SET v_notification_datetime = TIMESTAMP(DATE(v_view_timestamp), v_reminder_time);
+        END IF;
+
+        SET v_diff_seconds = TIMESTAMPDIFF(SECOND, v_notification_datetime, v_view_timestamp);
+
+        IF v_diff_seconds >= 0 AND v_diff_seconds <= v_threshold THEN
+            SET v_is_prompted = 1;
+        ELSE
+            SET v_is_prompted = 0;
+        END IF;
+    ELSE
+        SET v_notification_datetime = NULL;
+        SET v_diff_seconds = NULL;
+        SET v_is_prompted = 0;
+    END IF;
+
+    -- 3. Insert audit log
+    INSERT INTO user_notification_watch_logs (
+        user_id,
+        video_id,
+        scheduled_reminder_time,
+        notification_datetime,
+        viewed_at,
+        difference_seconds,
+        threshold_seconds,
+        is_prompted
+    ) VALUES (
+        p_user_id,
+        p_video_id,
+        v_reminder_time,
+        v_notification_datetime,
+        v_view_timestamp,
+        v_diff_seconds,
+        v_threshold,
+        v_is_prompted
+    );
+
+    -- 4. Return the logged entry
+    SELECT 
+        LAST_INSERT_ID() AS log_id,
+        p_user_id AS user_id,
+        p_video_id AS video_id,
+        v_reminder_time AS scheduled_reminder_time,
+        v_notification_datetime AS notification_datetime,
+        v_view_timestamp AS viewed_at,
+        v_diff_seconds AS difference_seconds,
+        v_threshold AS threshold_seconds,
+        v_is_prompted AS is_prompted,
+        CASE WHEN v_is_prompted = 1 THEN 'Reminder-Prompted' ELSE 'Self-Initiated' END AS view_classification;
+END$$
 DELIMITER ;
 
 DELIMITER $$

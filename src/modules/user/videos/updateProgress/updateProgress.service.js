@@ -34,6 +34,23 @@ const updateVideoProgress = async ({
     ];
 
     const [result] = await pool.query(query, values);
+
+    // Automatically log the notification view time difference and prompted status
+    try {
+        const threshold = Number(process.env.REMINDER_PROMPT_WINDOW_SECONDS) || 7200;
+        await pool.query(
+            'CALL log_user_notification_view(?, ?, ?, ?, ?)',
+            [
+                userId,
+                videoId,
+                currentTimestampSeconds || 0,
+                formatDateForMySQL(lastWatchedAt) || null,
+                threshold
+            ]
+        );
+    } catch (logErr) {
+        console.error('Error logging user notification view:', logErr.message);
+    }
     
     // The stored procedure now ends with a SELECT statement, 
     // so result[0] contains the array of rows from that SELECT
