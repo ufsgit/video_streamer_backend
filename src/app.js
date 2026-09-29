@@ -42,11 +42,13 @@ const totalLoginsRoutes = require('./modules/admin/dashboard/totalLogins/totalLo
 const avgVideosRoutes = require('./modules/admin/dashboard/avgVideosWatched/avgVideosWatched.routes');
 const completionRateRoutes = require('./modules/admin/dashboard/completionRate/completionRate.routes');
 const activityLogsRoutes = require('./modules/admin/dashboard/activityLogs/activityLogs.routes');
+const topWatchedVideosRoutes = require('./modules/admin/dashboard/topWatchedVideos/topWatchedVideos.routes');
 
 app.use('/api/admin/dashboard/total-logins', totalLoginsRoutes);
 app.use('/api/admin/dashboard/avg-videos', avgVideosRoutes);
 app.use('/api/admin/dashboard/completion-rate', completionRateRoutes);
 app.use('/api/admin/dashboard/activity-logs', activityLogsRoutes);
+app.use('/api/admin/dashboard/top-watched-videos', topWatchedVideosRoutes);
 
 // Manage Users Routes
 const createUserRoutes = require('./modules/admin/manageUsers/createUser/createUser.routes');
@@ -96,6 +98,10 @@ app.use('/api/admin/videos/delete', deleteVideoRoutes);
 const listAdminLanguagesRoutes = require('./modules/admin/languages/listLanguages/listLanguages.routes');
 app.use('/api/admin/languages/list', listAdminLanguagesRoutes);
 
+// Admin Notifications Routes
+const adminNotificationsRoutes = require('./modules/admin/notifications/notifications.routes');
+app.use('/api/admin/notifications', adminNotificationsRoutes);
+
 // User Facing Routes
 const listLanguagesRoutes = require('./modules/user/languages/listLanguages/listLanguages.routes');
 const listUserVideosRoutes = require('./modules/user/videos/listVideosByCategory/listVideosByCategory.routes');
@@ -109,11 +115,13 @@ const listProfilesRoutes = require('./modules/user/profiles/listProfiles/listPro
 const updateLanguageRoutes = require('./modules/user/profiles/updateLanguage/updateLanguage.routes');
 const reminderRoutes = require('./modules/user/reminders/reminder.routes');
 const activityRoutes = require('./modules/user/activity/activity.routes');
+const userNotificationsRoutes = require('./modules/user/notifications/getNotifications/getNotifications.routes');
 
 app.use('/api/user/profiles/list', listProfilesRoutes);
 app.use('/api/user/profiles/language', updateLanguageRoutes);
 app.use('/api/user/reminder', reminderRoutes);
 app.use('/api/user/activity', activityRoutes);
+app.use('/api/user/notifications', userNotificationsRoutes);
 
 // App Version Check Route
 const checkVersionRoutes = require('./modules/user/appVersion/checkVersion/checkVersion.routes');
